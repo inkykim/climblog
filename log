@@ -506,6 +506,24 @@ async function logInjuryCheck(date, injury) {
   return writeEntry("entries/symptom-observations", id, fields, notes);
 }
 
+async function resolveInjury() {
+  const injuries = loadInjuries().sort((a, b) => (a.status === "active" ? -1 : 1));
+  if (!injuries.length) { console.log("no injuries tracked."); return []; }
+  for (let i = 0; i < injuries.length; i++)
+    console.log(`  ${i + 1}) ${injuries[i].label} [${injuries[i].status}]`);
+  const n = await askInt("which injury (number)", 1, injuries.length, false);
+  const inj = injuries[n - 1];
+  if (inj.status === "resolved") { console.log(`"${inj.label}" is already resolved.`); return []; }
+  console.log("resolved as of when?");
+  const date = await askDate();
+  const file = path.join(ROOT, "injuries", `${inj.id}.md`);
+  let text = fs.readFileSync(file, "utf8");
+  text = text.replace(/^status: active$/m, `status: resolved\nresolved_date: ${date}`);
+  fs.writeFileSync(file, text);
+  console.log(`✓ "${inj.label}" resolved ${date} — no more check-in prompts`);
+  return [file];
+}
+
 async function logNewInjury() {
   const site = await askChoice("site", {
     a2: "finger_a2", a4: "finger_a4", fp: "finger_pulley_other",
@@ -569,12 +587,15 @@ function commitAndPush(files, summary) {
     }
 
     const kind = await askChoice("log what", {
-      c: "climb", w: "workout", r: "rest", n: "nothing", i: "injury-check", x: "new-injury",
+      c: "climb", w: "workout", r: "rest", n: "nothing", i: "injury-check", x: "new-injury", z: "resolve-injury",
     });
 
     if (kind === "new-injury") {
       created.push(...(await logNewInjury()));
       kinds.push("new injury");
+    } else if (kind === "resolve-injury") {
+      created.push(...(await resolveInjury()));
+      kinds.push("injury resolved");
     } else if (kind === "injury-check") {
       const injuries = loadInjuries().sort((a, b) => (a.status === "active" ? -1 : 1));
       if (!injuries.length) {
