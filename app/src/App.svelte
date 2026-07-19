@@ -3,12 +3,12 @@
   import Summary from "./lib/Summary.svelte";
   import Timeline from "./lib/Timeline.svelte";
   import InjuryCurve from "./lib/InjuryCurve.svelte";
-  import V1Index from "./demo/V1Index.svelte";
-  import V2Poster from "./demo/V2Poster.svelte";
-  import V3Charts from "./demo/V3Charts.svelte";
+  import OptA from "./demo/OptA.svelte";
+  import OptB from "./demo/OptB.svelte";
+  import OptC from "./demo/OptC.svelte";
 
   // #v1 / #v2 / #v3 → design-direction variants on demo data; no hash → real dashboard
-  const VARIANTS = { "#v1": V1Index, "#v2": V2Poster, "#v3": V3Charts };
+  const VARIANTS = { "#v1": OptA, "#v2": OptB, "#v3": OptC };
   let hash = $state(typeof location !== "undefined" ? location.hash : "");
   const variant = $derived(VARIANTS[hash] ?? null);
 

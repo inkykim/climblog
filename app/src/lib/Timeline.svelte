@@ -17,8 +17,8 @@
   };
   const discLabel = {
     gym: "gym",
-    kilter_board: "Kilter",
-    tb2: "TB2",
+    kilter_board: "Kilter Board",
+    tb2: "Tension Board 2",
     outdoor: "outdoor",
   };
 

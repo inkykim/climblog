@@ -181,6 +181,30 @@ function outdoorClimbs(dateStr, p) {
   return climbs;
 }
 
+const SESSION_NOTES = [
+  "Felt strong on crimps today, slopers still shut me down.",
+  "Skin was thin — cut it short before it split.",
+  "Worked the project all session, moves are linked in halves now.",
+  "Tired from work, low energy but moved anyway.",
+  "New set in the cave. Everything feels sandbagged.",
+  "Flash go on the black felt easy — maybe ready for the next tier.",
+  "Finger felt fine on crimps but pinchy on the deep pockets.",
+  "Great session. Everything clicked.",
+  "Warmup took forever, only felt recruited in the last hour.",
+  "Tried the dyno ~15 times, sticking the catch is the crux.",
+  "Elbow talked to me on lock-offs, backed off compression climbs.",
+  "Shoulder pinged on a wide gaston, stopped early to be safe.",
+  "Repeated old projects to gauge progress — everything felt two grades easier.",
+  "Board with the crew, tried everyone's projects.",
+  "Conditions were perfect, best friction in months.",
+];
+const WORKOUT_NOTES = [
+  "Push day + rehab protocol.",
+  "Easy spin + long hip mobility session.",
+  "Max hangs felt solid, +2.5kg from last block.",
+  "Deload week, light everything.",
+];
+
 // ---------- walk the year ----------
 const loadEvents = [];
 const observations = [];
@@ -247,7 +271,11 @@ for (let d = new Date(START); d <= END; d.setDate(d.getDate() + 1)) {
     // Sun
     ev = chance(0.8) ? { id, type: "rest", date: dateStr } : { id, type: "nothing", date: dateStr };
   }
-  if (ev) loadEvents.push(ev);
+  if (ev) {
+    if (ev.type === "climbing_session" && !ev._notes && chance(0.5)) ev._notes = pick(SESSION_NOTES);
+    if (ev.type === "rest_workout" && chance(0.35)) ev._notes = pick(WORKOUT_NOTES);
+    loadEvents.push(ev);
+  }
 
   // ---- injury observations ----
   // A2 pulley: 2025-10-14 → 2025-12-21, pain 7 → 0

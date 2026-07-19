@@ -70,3 +70,11 @@ progression); most insight per screen.
 ## Session Log
 - 2026-07-19: Initial ideation — 12 candidates generated, 3 survived; all 3 built as
   variants with 1yr dummy data for user selection.
+- 2026-07-19 (iteration 2): User locked the spine — V1 barcode strip + tally, V3 FIG.1
+  (load × pain), V1 full session index with click-to-expand notes; labels Kilter Board /
+  Tension Board 2 / type BOARD. Rejected raw-grade aggregate figures (send pyramid,
+  cross-venue top-grade, raw style counts) as survivorship-biased and venue-incomparable.
+  Old V1/V2/V3 retired; three new options built on the shared spine, differing in
+  analytics: A Venue Ledgers (per-venue ceilings, own grading), B Effort & Efficiency
+  (attempts/send, flash rate, first-send share, ACWR), C Injury Lab (onset-aligned
+  recovery, prior-day load × pain, tolerance strips).

@@ -1,0 +1,93 @@
+<script>
+  import { sessions, sessionStats, venueOf, TYPE_LABEL } from "./derive.js";
+
+  let { data, title = "SESSION INDEX" } = $props();
+
+  const ss = $derived([...sessions(data)].reverse());
+  let open = $state(null); // session id whose notes are expanded
+
+  function toggle(id) {
+    open = open === id ? null : id;
+  }
+  function climbLine(c) {
+    const bits = [];
+    if (c.name) bits.push(c.name);
+    bits.push(c.grade);
+    if (c.board_angle != null) bits.push(`${c.board_angle}°`);
+    if (c.wall_angle) bits.push(c.wall_angle);
+    bits.push(`×${c.attempts}`);
+    if (c.sent) bits.push(c.repeat ? "✓ rpt" : "✓");
+    return bits.join(" ");
+  }
+</script>
+
+<section class="index">
+  <h2>{title}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th class="mono">NO.</th><th class="mono">DATE</th><th>VENUE</th>
+        <th>TYPE</th><th class="r">CLIMBS</th><th class="r">SENDS</th>
+        <th class="r">TOP</th><th class="r">MIN</th><th class="c">¶</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#each ss as e, i (e.id)}
+        {@const s = sessionStats(e)}
+        {@const hasDetail = !!(e._notes || e.climbs?.length)}
+        <tr class="row" class:openrow={open === e.id} onclick={() => hasDetail && toggle(e.id)}>
+          <td class="mono dim">{String(ss.length - i).padStart(3, "0")}</td>
+          <td class="mono">{e.date}</td>
+          <td class="venue">{venueOf(e).toUpperCase()}</td>
+          <td class="dim">{TYPE_LABEL[e.discipline]?.toUpperCase()}</td>
+          <td class="r mono">{s.climbs}</td>
+          <td class="r mono">{s.sends}</td>
+          <td class="r mono top">{s.top ?? "—"}</td>
+          <td class="r mono dim">{e.duration_min ?? "—"}</td>
+          <td class="c mark">{e._notes ? "¶" : ""}</td>
+        </tr>
+        {#if open === e.id}
+          <tr class="detail">
+            <td></td>
+            <td colspan="8">
+              {#if e._notes}<p class="notes">{e._notes}</p>{/if}
+              {#if e.climbs?.length}
+                <p class="climbs mono">
+                  {#each e.climbs as c, ci (ci)}<span class="chip" class:sent={c.sent}>{climbLine(c)}</span>{/each}
+                </p>
+              {/if}
+            </td>
+          </tr>
+        {/if}
+      {/each}
+    </tbody>
+  </table>
+</section>
+
+<style>
+  h2 { font-size: 10px; letter-spacing: 0.16em; font-weight: 500; margin: 40px 0 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 500; font-size: 9.5px; letter-spacing: 0.12em; color: #888; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 6px 8px 6px 0; }
+  th.r { text-align: right; }
+  th.c { text-align: center; }
+  td { border-bottom: 1px solid #e3e3e3; padding: 5px 8px 5px 0; vertical-align: middle; }
+  .r { text-align: right; }
+  .c { text-align: center; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; }
+  .dim { color: #888; }
+  .row { cursor: pointer; }
+  .row:hover { background: #000; color: #fff; }
+  .row:hover .dim { color: #aaa; }
+  .row.openrow { background: #000; color: #fff; }
+  .row.openrow .dim { color: #aaa; }
+  .venue { font-weight: 600; letter-spacing: 0.02em; }
+  .top { font-weight: 600; }
+  .mark { color: #000; font-size: 11px; }
+  .row:hover .mark, .row.openrow .mark { color: #fff; }
+
+  .detail td { border-bottom: 1px solid #000; background: #fafafa; padding: 12px 16px 14px 0; }
+  .notes { margin: 0 0 8px; font-size: 13px; line-height: 1.5; max-width: 640px; }
+  .climbs { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid #ccc; padding: 2px 8px; font-size: 10px; color: #888; white-space: nowrap; }
+  .chip.sent { border-color: #000; color: #000; }
+</style>
