@@ -24,6 +24,11 @@
 <section class="index">
   <h2>{title}</h2>
   <table>
+    <colgroup>
+      <col style="width:44px" /><col style="width:104px" /><col />
+      <col style="width:96px" /><col style="width:64px" /><col style="width:60px" />
+      <col style="width:72px" /><col style="width:52px" />
+    </colgroup>
     <thead>
       <tr>
         <th class="mono">NO.</th><th class="mono">DATE</th><th>VENUE</th>
@@ -68,7 +73,9 @@
 
 <style>
   h2 { font-size: 10px; letter-spacing: 0.16em; font-weight: 500; margin: 40px 0 8px; }
-  table { width: 100%; border-collapse: collapse; }
+  /* fixed layout: the expanded detail row (colspan) can no longer shift column widths */
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  td { overflow-wrap: break-word; }
   th { text-align: left; font-weight: 500; font-size: 9.5px; letter-spacing: 0.12em; color: #888; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 6px 8px 6px 0; }
   th.r { text-align: right; }
   th.c { text-align: center; }
