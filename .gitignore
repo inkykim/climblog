@@ -1,0 +1,14 @@
+# Python
+.venv/
+.venv-test/
+__pycache__/
+*.pyc
+
+# Node (for the web app, later phases)
+node_modules/
+dist/
+.astro/
+.svelte-kit/
+
+# OS / editor
+.DS_Store

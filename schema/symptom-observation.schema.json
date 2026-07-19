@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "symptom-observation.schema.json",
+  "title": "Symptom Observation",
+  "description": "A dated reading on one tracked injury (day-of, day-after, etc.).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "injury_id", "date", "pain", "load_tolerance"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique id, matches the filename stem: <date>--<shortid>.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}--[a-z0-9]{2,8}$"
+    },
+    "injury_id": {
+      "type": "string",
+      "description": "id of the injury in injuries/ that this reading is about."
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "pain": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Pain 0 (none) to 10 (worst)."
+    },
+    "load_tolerance": {
+      "enum": ["green", "yellow", "red"],
+      "description": "Stoplight: green = loads fine, yellow = tolerates with caution, red = avoid."
+    },
+    "rom": {
+      "type": "string",
+      "description": "Range-of-motion note, optional."
+    },
+    "notes": { "type": "string" }
+  }
+}

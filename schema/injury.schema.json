@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "injury.schema.json",
+  "title": "Injury",
+  "description": "A tracked injury entity. Symptom observations reference its id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "site", "onset_date", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique id, matches the filename stem: <slug>--<shortid>.",
+      "pattern": "^[a-z0-9-]+--[a-z0-9]{2,8}$"
+    },
+    "site": {
+      "enum": [
+        "finger_a2",
+        "finger_a4",
+        "finger_pulley_other",
+        "finger_flexor_tendon",
+        "elbow_medial",
+        "elbow_lateral",
+        "shoulder",
+        "wrist",
+        "forearm",
+        "knee",
+        "back",
+        "other"
+      ]
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable name, e.g. 'left ring A2 pulley'."
+    },
+    "onset_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "status": { "enum": ["active", "resolved"] },
+    "resolved_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "notes": { "type": "string" }
+  }
+}
