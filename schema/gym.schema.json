@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gym.schema.json",
+  "title": "Gym",
+  "description": "A climbing gym and how it grades. Created once, referenced by every session there. The grading definition is what future analysis uses to normalize grades across gyms (soft vs sandbagged).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "grading"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique id, matches the filename stem: <slug>--<shortid>.",
+      "pattern": "^[a-z0-9-]+--[a-z0-9]{2,8}$"
+    },
+    "name": { "type": "string" },
+    "grading": {
+      "enum": ["v_scale", "kyu_dan", "circuit"],
+      "description": "v_scale: V0..V17. kyu_dan: Japanese 級/段 (e.g. 5kyu, 1dan). circuit: gym-defined levels, each mapping to an approx V range."
+    },
+    "circuits": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Required when grading=circuit. Ordered easiest to hardest.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "v_min": { "type": "string", "pattern": "^V(B|\\d{1,2})$" },
+          "v_max": { "type": "string", "pattern": "^V(B|\\d{1,2})$" }
+        }
+      }
+    },
+    "notes": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "grading": { "const": "circuit" } }, "required": ["grading"] },
+      "then": { "required": ["circuits"] }
+    }
+  ]
+}

@@ -27,6 +27,7 @@ TARGETS = {
     "entries/load-events": "schema/load-event.schema.json",
     "entries/symptom-observations": "schema/symptom-observation.schema.json",
     "injuries": "schema/injury.schema.json",
+    "gyms": "schema/gym.schema.json",
 }
 
 
@@ -57,9 +58,9 @@ def annotate(path, msg, line=1):
     print(f"::error file={rel},line={line}::{msg}")
 
 
-def collect_injury_ids():
+def collect_ids(subdir):
     ids = set()
-    for path in glob.glob(os.path.join(ROOT, "injuries", "*.md")):
+    for path in glob.glob(os.path.join(ROOT, subdir, "*.md")):
         try:
             meta = normalize(frontmatter.load(path).metadata)
         except Exception:
@@ -71,7 +72,8 @@ def collect_injury_ids():
 
 def main():
     failed = False
-    injury_ids = collect_injury_ids()
+    injury_ids = collect_ids("injuries")
+    gym_ids = collect_ids("gyms")
 
     for subdir, schema_rel in TARGETS.items():
         validator = load_validator(schema_rel)
@@ -97,6 +99,12 @@ def main():
                 ref = meta.get("injury_id")
                 if ref and ref not in injury_ids:
                     annotate(path, f"injury_id '{ref}' does not match any injury in injuries/")
+                    failed = True
+
+            if subdir.endswith("load-events"):
+                ref = meta.get("gym_id")
+                if ref and ref not in gym_ids:
+                    annotate(path, f"gym_id '{ref}' does not match any gym in gyms/")
                     failed = True
 
     if failed:

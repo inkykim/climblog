@@ -40,11 +40,19 @@ function loadDir(rel) {
     });
 }
 
+const gyms = loadDir("gyms");
+const loadEvents = loadDir("entries/load-events").map((e) => {
+  // join gym name in at compile time so the app never needs a lookup
+  const gym = e.gym_id ? gyms.find((g) => g.id === e.gym_id) : null;
+  return gym ? { ...e, gym_name: gym.name } : e;
+});
+
 const data = {
   generatedAt: new Date().toISOString(),
-  loadEvents: loadDir("entries/load-events"),
+  loadEvents,
   symptomObservations: loadDir("entries/symptom-observations"),
   injuries: loadDir("injuries"),
+  gyms,
 };
 
 const outDir = join(APP, "public");

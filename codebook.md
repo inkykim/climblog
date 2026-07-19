@@ -2,7 +2,8 @@
 
 The **schemas in `schema/` are canonical** — CI validates every entry against them.
 This file is the human-readable mirror: the allowed values, plus copy-paste templates
-so you can log by hand without opening the JSON.
+so you can log by hand without opening the JSON. (The `./log` CLI generates all of
+this for you — hand-logging is the fallback.)
 
 Every record is one markdown file with YAML frontmatter. The frontmatter is the data;
 anything below the closing `---` is freeform notes (ignored by validation).
@@ -12,85 +13,171 @@ anything below the closing `---` is freeform notes (ignored by validation).
 - Load events → `entries/load-events/<date>--<shortid>.md`
 - Symptom observations → `entries/symptom-observations/<date>--<shortid>.md`
 - Injuries → `injuries/<slug>--<shortid>.md`
+- Gyms → `gyms/<slug>--<shortid>.md`
 
-`<shortid>` is any 2–8 lowercase-alphanumeric tag you pick (e.g. `k3f9`) to keep multiple
-entries on the same day distinct. **The `id:` in the frontmatter must equal the filename
-without `.md`.** Dates are `YYYY-MM-DD` and do **not** need quotes.
+`<shortid>` is any 2–8 lowercase-alphanumeric tag (the CLI generates 4 random chars).
+**The `id:` in the frontmatter must equal the filename without `.md`.** Dates are
+`YYYY-MM-DD` and do **not** need quotes.
 
 ---
 
 ## Record type: load event
 
 One per training day — a climbing session, a rest-day workout, or a minimal rest/nothing
-day. Log *something* every day.
+day. Log *something* every day. A gym day and a board day are **two sessions** (two files).
 
-**Fields** (only `id`, `type`, `date` are required):
+**Session fields** (`id`, `type`, `date` always required; `discipline` required for
+climbing sessions; `gym_id` required when `discipline: gym`):
 
 | field | values |
 |---|---|
 | `type` | `climbing_session` · `rest_workout` · `rest` · `nothing` |
 | `date` | `YYYY-MM-DD` |
+| `discipline` | `gym` · `kilter_board` · `tb2` · `outdoor` |
+| `gym_id` | id of a gym in `gyms/` (gym sessions) |
+| `location` | free text (e.g. outdoor crag), optional |
 | `duration_min` | integer minutes |
-| `disciplines` | list of `boulder` · `lead` · `top_rope` · `board` · `autobelay` |
-| `location` | free text |
-| `volume` | integer — total problems/routes attempted |
-| `hardest_send` | grade string, e.g. `V5`, `5.11c` |
-| `grades` | list of `{ grade, discipline, result, count }` — `result` ∈ `send` `flash` `onsight` `attempt` `project` |
-| `workout_type` | list of `lifting` · `mobility` · `antagonist` · `cardio` · `hangboard` · `stretching` · `other` |
-| `rpe` | integer 1–10 (session effort) |
+| `climbs` | list of per-climb objects — see below |
+| `workout_type` | rest_workout only: list of `lifting` · `mobility` · `antagonist` · `cardio` · `hangboard` · `stretching` · `other` |
+| `rpe` | rest_workout only: integer 1–10 |
 | `notes` | free text |
 
-### Template — climbing session
+**Per-climb fields** (`grade`, `attempts`, `sent`, `repeat` required):
 
-`entries/load-events/2026-07-19--k3f9.md`
+| field | values | applies to |
+|---|---|---|
+| `name` | climb name | boards + outdoor |
+| `grade` | raw grade in the venue's system: `V5` / `3kyu`, `1dan` / a circuit level defined by the gym | all |
+| `wall_angle` | `slab` · `vert` · `overhang` | gym |
+| `styles` | list of `crimp` · `pinch` · `slopy` · `dynamic` · `balance` (a climb can be several) | gym |
+| `board_angle` | integer degrees 0–70 | boards |
+| `attempts` | integer ≥ 1 | all |
+| `sent` | `true` / `false` | all |
+| `repeat` | `true` = sent this problem on a previous day. First send = `sent: true` + `repeat: false`. Asked even when not sent — failing a previously-sent problem is a regression signal. | all |
+
+Session aggregates (volume, hardest send) are **derived from `climbs`, never stored**.
+
+### Template — gym session
 
 ```markdown
 ---
 id: 2026-07-19--k3f9
 type: climbing_session
 date: 2026-07-19
-duration_min: 90
-disciplines: [boulder]
-location: local gym
-volume: 18
-hardest_send: V5
-rpe: 7
-grades:
-  - grade: V4
-    discipline: boulder
-    result: send
-    count: 3
-  - grade: V5
-    discipline: boulder
-    result: project
-    count: 5
+discipline: gym
+gym_id: movement-sunnyvale--p7oz
+duration_min: 120
+climbs:
+  - grade: green
+    wall_angle: overhang
+    styles: [crimp, dynamic]
+    attempts: 3
+    sent: true
+    repeat: false
+  - grade: black
+    wall_angle: vert
+    styles: [slopy]
+    attempts: 5
+    sent: false
+    repeat: false
 ---
-Felt strong on crimps, weak on slopers. Tweaked nothing.
+Fun set. Felt strong on the new green circuit.
+```
+
+### Template — board session (Kilter / TB2)
+
+```markdown
+---
+id: 2026-07-20--a1b2
+type: climbing_session
+date: 2026-07-20
+discipline: kilter_board
+duration_min: 45
+climbs:
+  - name: Sleepwalker
+    grade: V6
+    board_angle: 40
+    attempts: 8
+    sent: true
+    repeat: false
+---
+```
+
+### Template — outdoor session
+
+```markdown
+---
+id: 2026-07-21--c3d4
+type: climbing_session
+date: 2026-07-21
+discipline: outdoor
+duration_min: 180
+climbs:
+  - name: Midnight Lightning
+    grade: V8
+    attempts: 12
+    sent: false
+    repeat: false
+---
 ```
 
 ### Template — rest-day workout
 
 ```markdown
 ---
-id: 2026-07-20--a1b2
+id: 2026-07-22--e5f6
 type: rest_workout
-date: 2026-07-20
+date: 2026-07-22
 duration_min: 45
 workout_type: [antagonist, mobility]
 rpe: 5
 ---
-Push day + shoulder prehab.
 ```
 
 ### Template — nothing / full rest day
 
 ```markdown
 ---
-id: 2026-07-21--z0z0
+id: 2026-07-23--z0z0
 type: rest
-date: 2026-07-21
+date: 2026-07-23
 ---
 ```
+
+---
+
+## Record type: gym
+
+One file per gym, created automatically the first time you log a session there.
+Carries the gym's grading system — this is what future analysis uses to normalize
+grades across gyms (soft vs sandbagged) and against boards/outdoor.
+
+**Fields** (`id`, `name`, `grading` required; `circuits` required when `grading: circuit`):
+
+| field | values |
+|---|---|
+| `grading` | `v_scale` · `kyu_dan` · `circuit` |
+| `circuits` | ordered easiest→hardest: list of `{ name, v_min?, v_max? }` |
+
+### Template
+
+```markdown
+---
+id: movement-sunnyvale--p7oz
+name: Movement Sunnyvale
+grading: circuit
+circuits:
+  - name: yellow
+    v_min: V0
+    v_max: V2
+  - name: green
+    v_min: V2
+    v_max: V4
+---
+```
+
+Grade formats by system: `v_scale` → `V0`–`V17` (or `VB`); `kyu_dan` → `8kyu` … `1kyu`,
+`1dan` … ; `circuit` → one of that gym's defined level names.
 
 ---
 
@@ -111,8 +198,6 @@ day-after reading is the most informative one.
 | `notes` | free text |
 
 ### Template
-
-`entries/symptom-observations/2026-07-19--m2a1.md`
 
 ```markdown
 ---
@@ -145,8 +230,6 @@ One file per injury. Symptom observations point at it via `injury_id`.
 
 ### Template
 
-`injuries/a2-left-ring--p8x2.md`
-
 ```markdown
 ---
 id: a2-left-ring--p8x2
@@ -162,6 +245,8 @@ Felt a twinge on a deep lock. No pop.
 
 ## Changing the vocabulary
 
-Adding a new value (a new `site`, `workout_type`, etc.) is safe — edit the enum in the
-matching `schema/*.schema.json` and this file together. **Renaming or removing** a value
-would orphan past entries, so prefer additive changes.
+Adding a new value (a new `site`, `style`, discipline, etc.) is safe — edit the enum in
+the matching `schema/*.schema.json` and this file together. **Renaming or removing** a
+value would orphan past entries, so prefer additive changes. Same for a gym's circuit
+levels: when a gym re-grades its circuits, add the new levels rather than renaming old
+ones (or create a new gym entry and note the change).
