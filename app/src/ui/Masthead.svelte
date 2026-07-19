@@ -1,18 +1,24 @@
 <script>
-  import { totals, byDay } from "./derive.js";
+  import { totals, byDay, dateSpan, fmtMonth } from "./derive.js";
 
-  let { data, sub, active } = $props();
+  let { data, aboutOpen = $bindable(false), demo = false } = $props();
 
   const t = $derived(totals(data));
   const days = $derived(byDay(data));
+  const span = $derived(dateSpan(data));
+
+  const sub = $derived.by(() => {
+    if (!span) return "TRAINING ARCHIVE";
+    const f = fmtMonth(span.first.slice(0, 7)).replace(" ", " 20");
+    const l = fmtMonth(span.last.slice(0, 7)).replace(" ", " 20");
+    return `TRAINING ARCHIVE — ${f === l ? f : `${f} / ${l}`}${demo ? " — DEMO DATA" : ""}`;
+  });
 
   const strip = $derived.by(() => {
-    const dates = data.loadEvents.map((e) => e.date).sort();
+    if (!span) return [];
     const out = [];
-    const d = new Date(`${dates[0]}T00:00:00`);
-    const end = new Date(`${dates[dates.length - 1]}T00:00:00`);
-    for (; d <= end; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().slice(0, 10);
+    for (let ts = span.a; ts <= span.b; ts += 86400000) {
+      const key = new Date(ts).toISOString().slice(0, 10);
       out.push({ date: key, kind: days.get(key)?.kind ?? "none" });
     }
     return out;
@@ -25,9 +31,9 @@
     <span class="brand">CLIMBLOG</span>
     <span class="sub">{sub}</span>
     <nav>
-      <a href="#v1" class:on={active === "v1"}>A</a>
-      <a href="#v2" class:on={active === "v2"}>B</a>
-      <a href="#v3" class:on={active === "v3"}>C</a>
+      <button class="about" class:on={aboutOpen} onclick={() => (aboutOpen = !aboutOpen)}>
+        ABOUT{aboutOpen ? " —" : " +"}
+      </button>
     </nav>
   </div>
   <div class="strip" aria-hidden="true">
@@ -43,13 +49,15 @@
 </header>
 
 <style>
-  .mast { display: block; }
   .masthead { display: flex; align-items: baseline; gap: 18px; padding-bottom: 14px; }
   .brand { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
   .sub { font-size: 10px; letter-spacing: 0.14em; }
-  nav { margin-left: auto; display: flex; gap: 12px; }
-  nav a { color: #999; text-decoration: none; font-size: 10px; letter-spacing: 0.14em; }
-  nav a.on { color: #000; border-bottom: 1px solid #000; }
+  nav { margin-left: auto; }
+  .about {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: inherit; color: #000; font-size: 10px; letter-spacing: 0.14em;
+  }
+  .about.on, .about:hover { border-bottom: 1px solid #000; }
 
   .strip { display: flex; width: 100%; height: 26px; border-top: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; }
   .strip i { flex: 1 1 0; }
@@ -58,5 +66,5 @@
   .strip i.rest { background: #eee; }
   .strip i.none { background: #fff; }
 
-  .tally { display: flex; gap: 26px; padding: 10px 0 0; font-size: 10.5px; letter-spacing: 0.12em; }
+  .tally { display: flex; gap: 26px; padding: 10px 0 0; font-size: 10.5px; letter-spacing: 0.12em; flex-wrap: wrap; }
 </style>

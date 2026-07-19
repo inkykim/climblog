@@ -1,126 +1,56 @@
 <script>
   import { onMount } from "svelte";
-  import Summary from "./lib/Summary.svelte";
-  import Timeline from "./lib/Timeline.svelte";
-  import InjuryCurve from "./lib/InjuryCurve.svelte";
-  import OptA from "./demo/OptA.svelte";
-  import OptB from "./demo/OptB.svelte";
-  import OptC from "./demo/OptC.svelte";
+  import Journal from "./ui/Journal.svelte";
 
-  // #v1 / #v2 / #v3 → design-direction variants on demo data; no hash → real dashboard
-  const VARIANTS = { "#v1": OptA, "#v2": OptB, "#v3": OptC };
+  // #demo → generated demo year (design evaluation); no hash → real data.
   let hash = $state(typeof location !== "undefined" ? location.hash : "");
-  const variant = $derived(VARIANTS[hash] ?? null);
+  const demo = $derived(hash === "#demo");
 
   let data = $state(null);
-  let demoData = $state(null);
   let error = $state(null);
-  let loading = $state(true);
 
-  // variants are stark white — override the gray app body while one is active
-  $effect(() => {
-    document.body.style.background = variant ? "#fff" : "";
-  });
-
-  async function loadDemo() {
-    if (demoData) return;
-    const res = await fetch(`${import.meta.env.BASE_URL}data-demo.json`);
-    if (res.ok) demoData = await res.json();
-  }
-
-  onMount(async () => {
-    const onHash = () => {
-      hash = location.hash;
-      if (VARIANTS[hash]) loadDemo();
-    };
-    window.addEventListener("hashchange", onHash);
+  async function load(isDemo) {
     try {
-      if (VARIANTS[hash]) await loadDemo();
-      const res = await fetch(`${import.meta.env.BASE_URL}data.json`);
-      if (!res.ok) throw new Error(`Could not load data.json (HTTP ${res.status})`);
+      error = null;
+      data = null;
+      const file = isDemo ? "data-demo.json" : "data.json";
+      const res = await fetch(`${import.meta.env.BASE_URL}${file}`);
+      if (!res.ok) throw new Error(`Could not load ${file} (HTTP ${res.status})`);
       data = await res.json();
     } catch (e) {
       error = e.message;
-    } finally {
-      loading = false;
     }
-  });
+  }
 
-  const activeInjuries = $derived(
-    data ? data.injuries.filter((i) => i.status === "active") : [],
-  );
-  const resolvedInjuries = $derived(
-    data ? data.injuries.filter((i) => i.status === "resolved") : [],
-  );
-  const hasAnything = $derived(
-    !!(
-      data &&
-      (data.loadEvents.length ||
-        data.symptomObservations.length ||
-        data.injuries.length)
-    ),
-  );
+  onMount(() => {
+    const onHash = () => {
+      hash = location.hash;
+      load(location.hash === "#demo");
+    };
+    window.addEventListener("hashchange", onHash);
+    load(demo);
+
+    // no right-click, no text selection (selection disabled in app.css)
+    const noCtx = (e) => e.preventDefault();
+    document.addEventListener("contextmenu", noCtx);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      document.removeEventListener("contextmenu", noCtx);
+    };
+  });
 </script>
 
-{#if variant}
-  {#if demoData}
-    {@const Variant = variant}
-    <Variant data={demoData} />
-  {:else}
-    <p style="padding:40px;font-family:monospace">loading demo data…</p>
-  {/if}
+{#if error}
+  <p class="err">COULDN'T LOAD DATA — {error}</p>
+{:else if data}
+  <Journal {data} {demo} />
 {:else}
-<header>
-  <h1>climb<span>log</span></h1>
-  <p class="tagline">training &amp; injury journal</p>
-</header>
-
-<main>
-  {#if loading}
-    <p class="muted">Loading…</p>
-  {:else if error}
-    <div class="card error">
-      <strong>Couldn't load data.</strong>
-      <p class="muted small">{error}</p>
-    </div>
-  {:else if !hasAnything}
-    <div class="card empty">
-      <h2>No entries yet</h2>
-      <p>
-        Log your first entry by copying a template from <code>codebook.md</code>
-        into <code>entries/</code> and committing it. Even a one-line
-        <code>type: rest</code> day counts.
-      </p>
-    </div>
-  {:else}
-    <Summary {data} />
-
-    <section>
-      <h2>Injuries</h2>
-      {#if activeInjuries.length === 0 && resolvedInjuries.length === 0}
-        <p class="muted">No injuries tracked. 🎉</p>
-      {:else}
-        {#each activeInjuries as injury (injury.id)}
-          <InjuryCurve {injury} observations={data.symptomObservations} active />
-        {/each}
-        {#each resolvedInjuries as injury (injury.id)}
-          <InjuryCurve {injury} observations={data.symptomObservations} />
-        {/each}
-      {/if}
-    </section>
-
-    <section>
-      <h2>Timeline</h2>
-      <Timeline events={data.loadEvents} />
-    </section>
-  {/if}
-</main>
-
-<footer>
-  <p class="muted small">
-    Read-only view · data lives in the repo{data?.generatedAt
-      ? ` · built ${data.generatedAt.slice(0, 10)}`
-      : ""}
-  </p>
-</footer>
+  <p class="err">LOADING…</p>
 {/if}
+
+<style>
+  .err {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: 0.1em; padding: 48px;
+  }
+</style>

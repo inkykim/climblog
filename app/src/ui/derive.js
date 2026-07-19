@@ -166,6 +166,20 @@ export function fmtMonth(ym) {
   return ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][+m - 1] + " " + y.slice(2);
 }
 
+// Robust date span across ALL record types; safe on sparse/empty real data.
+export function dateSpan(data) {
+  const dates = [
+    ...data.loadEvents.map((e) => e.date),
+    ...data.symptomObservations.map((o) => o.date),
+    ...data.injuries.map((i) => i.onset_date),
+  ].filter(Boolean).sort();
+  if (!dates.length) return null;
+  let a = new Date(`${dates[0]}T00:00:00`).getTime();
+  let b = new Date(`${dates[dates.length - 1]}T00:00:00`).getTime();
+  if (b - a < 29 * 86400000) a = b - 29 * 86400000; // show at least a month of axis
+  return { a, b, first: dates[0], last: dates[dates.length - 1] };
+}
+
 // ---- Option A: per-venue monthly ceiling, each in its own grading system ----
 export function venueSeries(data) {
   const gymById = new Map(data.gyms.map((g) => [g.id, g]));

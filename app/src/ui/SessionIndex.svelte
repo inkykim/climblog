@@ -28,10 +28,13 @@
       <tr>
         <th class="mono">NO.</th><th class="mono">DATE</th><th>VENUE</th>
         <th>TYPE</th><th class="r">CLIMBS</th><th class="r">SENDS</th>
-        <th class="r">TOP</th><th class="r">MIN</th><th class="c">¶</th>
+        <th class="r">TOP</th><th class="r">MIN</th>
       </tr>
     </thead>
     <tbody>
+      {#if ss.length === 0}
+        <tr><td colspan="8" class="empty">NO SESSIONS YET.</td></tr>
+      {/if}
       {#each ss as e, i (e.id)}
         {@const s = sessionStats(e)}
         {@const hasDetail = !!(e._notes || e.climbs?.length)}
@@ -44,12 +47,11 @@
           <td class="r mono">{s.sends}</td>
           <td class="r mono top">{s.top ?? "—"}</td>
           <td class="r mono dim">{e.duration_min ?? "—"}</td>
-          <td class="c mark">{e._notes ? "¶" : ""}</td>
         </tr>
         {#if open === e.id}
           <tr class="detail">
             <td></td>
-            <td colspan="8">
+            <td colspan="7">
               {#if e._notes}<p class="notes">{e._notes}</p>{/if}
               {#if e.climbs?.length}
                 <p class="climbs mono">
@@ -82,8 +84,7 @@
   .row.openrow .dim { color: #aaa; }
   .venue { font-weight: 600; letter-spacing: 0.02em; }
   .top { font-weight: 600; }
-  .mark { color: #000; font-size: 11px; }
-  .row:hover .mark, .row.openrow .mark { color: #fff; }
+  .empty { text-align: center; padding: 28px 0; font-size: 10px; letter-spacing: 0.16em; color: #888; }
 
   .detail td { border-bottom: 1px solid #000; background: #fafafa; padding: 12px 16px 14px 0; }
   .notes { margin: 0 0 8px; font-size: 13px; line-height: 1.5; max-width: 640px; }
