@@ -12,7 +12,7 @@
   function climbLine(c) {
     const bits = [];
     if (c.name) bits.push(c.name);
-    bits.push(c.grade);
+    bits.push(c.grade?.toUpperCase());
     if (c.board_angle != null) bits.push(`${c.board_angle}°`);
     if (c.wall_angle) bits.push(c.wall_angle);
     bits.push(`×${c.attempts}`);
@@ -45,7 +45,7 @@
           <td class="dim">{TYPE_LABEL[e.discipline]?.toUpperCase()}</td>
           <td class="r mono">{s.climbs}</td>
           <td class="r mono">{s.sends}</td>
-          <td class="r mono top">{s.top ?? "—"}</td>
+          <td class="r mono top">{s.top?.toUpperCase() ?? "—"}</td>
           <td class="r mono dim">{e.duration_min ?? "—"}</td>
         </tr>
         {#if open === e.id}

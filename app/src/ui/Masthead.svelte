@@ -29,6 +29,7 @@
 <header class="mast">
   <div class="masthead">
     <span class="brand">CLIMBLOG</span>
+    <span class="by">by inky</span>
     <span class="sub">{sub}</span>
     <nav>
       <button class="about" class:on={aboutOpen} onclick={() => (aboutOpen = !aboutOpen)}>
@@ -40,17 +41,18 @@
     {#each strip as d (d.date)}<i class={d.kind}></i>{/each}
   </div>
   <div class="tally">
-    <span>{num(t.sessions)} SESSIONS</span>
-    <span>{num(t.climbs)} CLIMBS</span>
-    <span>{num(t.sends)} SENDS</span>
-    <span>{num(t.firsts)} FIRST SENDS</span>
-    <span>{num(Math.round(t.minutes / 60))} HOURS</span>
+    <span>{num(t.sessions)} {t.sessions === 1 ? "SESSION" : "SESSIONS"}</span>
+    <span>{num(data.gyms?.length ?? 0)} {(data.gyms?.length ?? 0) === 1 ? "GYM" : "GYMS"}</span>
+    <span>{num(t.attempts)} {t.attempts === 1 ? "ATTEMPT" : "ATTEMPTS"}</span>
+    <span>{num(t.firsts)} {t.firsts === 1 ? "SEND" : "SENDS"}</span>
+    <span>{num(Math.round(t.minutes / 60))} {Math.round(t.minutes / 60) === 1 ? "HOUR" : "HOURS"}</span>
   </div>
 </header>
 
 <style>
   .masthead { display: flex; align-items: baseline; gap: 18px; padding-bottom: 14px; }
   .brand { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .by { font-size: 12px; font-weight: 700; color: #9a9a9a; margin-left: -8px; }
   .sub { font-size: 10px; letter-spacing: 0.14em; }
   nav { margin-left: auto; }
   .about {
