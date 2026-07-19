@@ -205,11 +205,30 @@ function existingOnDate(date) {
   });
 }
 
+function repoValid() {
+  const py = fs.existsSync(path.join(ROOT, ".venv", "bin", "python"))
+    ? path.join(ROOT, ".venv", "bin", "python") : "python3";
+  try {
+    execFileSync(py, ["scripts/validate.py"], { cwd: ROOT, stdio: "pipe" });
+    return true;
+  } catch (e) {
+    const out = (e.stdout?.toString() ?? "") + (e.stderr?.toString() ?? "");
+    if (/ModuleNotFoundError|No such file/.test(out)) return true; // can't validate here — CI will
+    console.log(out.split("\n").filter((l) => l.includes("::error")).slice(0, 6).join("\n"));
+    return false;
+  }
+}
+
 async function openEditor(file) {
   if (!process.stdin.isTTY) { console.log(`  (non-interactive: edit ${file} yourself)`); return; }
   const ed = process.env.EDITOR || "nano";
-  try { execFileSync(ed, [file], { cwd: ROOT, stdio: "inherit" }); }
-  catch { console.log(`  editor exited with error — check ${file}`); }
+  for (;;) {
+    try { execFileSync(ed, [file], { cwd: ROOT, stdio: "inherit" }); }
+    catch { console.log(`  editor exited with error — check ${file}`); }
+    if (repoValid()) { console.log("  ✓ valid"); return; }
+    const again = await ask("  edit broke validation (errors above) — re-edit? [Y/n]: ");
+    if (again.toLowerCase() === "n") { console.log("  ⚠ leaving invalid — CI will be red until fixed"); return; }
+  }
 }
 
 // returns true to proceed with logging a new entry on this date; false to abort.
