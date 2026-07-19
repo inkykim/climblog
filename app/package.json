@@ -1,0 +1,21 @@
+{
+  "name": "climblog-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "node scripts/compile.mjs",
+    "dev": "npm run compile && vite",
+    "build": "npm run compile && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
+    "gray-matter": "^4.0.3",
+    "svelte": "^5.56.6",
+    "vite": "^8.1.5"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1"
+  }
+}

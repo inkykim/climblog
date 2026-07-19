@@ -29,6 +29,23 @@ python scripts/validate.py
 
 Prints `All climblog entries valid.` or per-file errors.
 
+## Web dashboard (read-only)
+
+A static Svelte app in `app/` visualizes the data: a session timeline and a
+pain-recovery curve per injury. It reads a single `data.json` compiled from
+`entries/` + `injuries/` at build time (no auth, no per-file API calls). Logging
+from the app (auth + forms) is a later phase.
+
+```bash
+cd app
+npm install
+npm run dev       # compiles data.json, serves at http://localhost:5173
+npm run build     # -> app/dist (static; deploy this)
+```
+
+Deploy target: Cloudflare Pages (or any static host). Build command
+`cd app && npm install && npm run build`, output directory `app/dist`.
+
 ## Layout
 
 ```
@@ -38,5 +55,6 @@ injuries/                       one file per tracked injury
 schema/                         canonical JSON Schemas (CI enforces these)
 codebook.md                     human-readable field reference + templates
 scripts/validate.py             CI + local validator
+app/                            read-only Svelte dashboard
 docs/                           brainstorm, plan
 ```
