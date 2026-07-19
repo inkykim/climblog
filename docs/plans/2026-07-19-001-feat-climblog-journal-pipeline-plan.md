@@ -279,8 +279,9 @@ docs/brainstorms/2026-07-19-climblog-pipeline-requirements.md, R3/R10 — resolv
   the same `schema/` files will drive client-side validation in Phase 3).
 - [x] CI fails any push containing a schema-invalid entry, with a per-file error annotation
   (dates validated via `pattern` + normalized from YAML date objects; verified locally). *(Phase 1)*
-- [ ] The app renders an entry timeline and a per-injury recovery (pain-over-time) curve
-  from a compiled `data.json`, readable without login (public repo).
+- [x] The app renders an entry timeline and a per-injury recovery (pain-over-time) curve
+  from a compiled `data.json`, readable without login (public repo). *(Phase 2 — built with
+  Vite + Svelte 5 instead of SvelteKit; lighter for a read-only SPA, same base for Phase 3.)*
 - [ ] "Log in with GitHub" (GitHub App, Contents R/W on the one repo) gates all writes;
   only the owner can commit.
 - [ ] Create/edit/delete of entries commits via the Contents API (create needs no sha;
