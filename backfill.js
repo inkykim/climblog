@@ -206,11 +206,11 @@ async function resolveVenue(gymCsv, progress) {
     const id = `${slugify(name)}--${shortId()}`;
     const f = writeEntry("gyms", id, { id, name, grading, circuits: circuits.length ? circuits : null }, "");
     console.log(`  ✓ wrote ${path.relative(ROOT, f)}`);
-    g = { id, name, grading, circuits: circuits.map((c) => c.name) };
+    g = { id, name, grading, circuits: circuits.map((c) => c.name), createdFile: f };
   }
   if (gymCsv !== "?") progress.gymMap[gymCsv] = g.id;
   progress.lastVenue = g.name;
-  return { kind: "gym", gym: g };
+  return { kind: "gym", gym: g, createdFile: g.createdFile };
 }
 
 // ---------- climbs ----------
@@ -252,8 +252,9 @@ async function askAttempts() {
 
 async function askWallStyles(isGym) {
   if (!isGym) return {};
-  const a = await ask("  wall+styles [e.g. 'o c,d' | enter skip]: ");
+  const a = await ask("  wall+styles [e.g. 'o c,d' | enter skip | u=undo last climb]: ");
   if (a === "") return {};
+  if (a.toLowerCase() === "u") return { _undo: true };
   const [w, ...rest] = a.split(/\s+/);
   const out = {};
   if (ANGLES[w?.toLowerCase()]) out.wall_angle = ANGLES[w.toLowerCase()];
@@ -276,6 +277,33 @@ async function askRepeatLabel() {
   if (a.toLowerCase() === "r") return { repeat: true };
   if (/^r\s+/i.test(a)) return { repeat: true, name: a.replace(/^r\s+/i, "") };
   return { repeat: false, name: a };
+}
+
+// ---------- existing-session awareness ----------
+function existingOnDate(date) {
+  const dir = path.join(ROOT, "entries", "load-events");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f.startsWith(`${date}--`)).map((f) => {
+    const text = fs.readFileSync(path.join(dir, f), "utf8");
+    const get = (k) => (text.match(new RegExp(`^${k}:\\s*(.+)$`, "m")) || [])[1]?.trim();
+    const climbs = (text.match(/^\s+- grade:/gm) || []).length;
+    return { file: path.join(dir, f), rel: `entries/load-events/${f}`, type: get("type"), discipline: get("discipline"), gym_id: get("gym_id"), climbs };
+  });
+}
+
+async function openEditor(file) {
+  if (!process.stdin.isTTY) { console.log(`  (non-interactive: edit ${file} yourself)`); return; }
+  const ed = process.env.EDITOR || "vi";
+  try { execFileSync(ed, [file], { cwd: ROOT, stdio: "inherit" }); }
+  catch { console.log(`  editor exited with error — check ${file}`); }
+}
+
+function summarize(fields, notes) {
+  console.log(`  ┌ ${fields.date} · ${fields.discipline}${fields.gym_id ? ` · ${fields.gym_id.split("--")[0]}` : ""}${fields.location ? ` · ${fields.location}` : ""}${fields.duration_min ? ` · ${fields.duration_min} min` : ""}`);
+  for (const c of fields.climbs ?? []) {
+    console.log(`  │ ${c.grade}${c.name ? ` "${c.name}"` : ""}${c.wall_angle ? ` ${c.wall_angle}` : ""}${c.styles ? ` [${c.styles.join(",")}]` : ""}${c.board_angle != null ? ` ${c.board_angle}°` : ""} ×${c.attempts}${c.attempts_estimated ? "~" : ""} ${c.sent ? (c.repeat ? "✓rpt" : "✓first") : "✗"}`);
+  }
+  console.log(`  └ notes: ${notes || "—"}`);
 }
 
 // ---------- git ----------
@@ -307,26 +335,48 @@ function commitAndPush(files, summary) {
     console.log(`\n── session ${idx}/${sessions.length} ─ ${s.date} ─ ${s.gymCsv === "?" ? "(no gym in CSV)" : s.gymCsv}`);
     console.log(`   csv: ${realRows.map((r) => `${r.grade}${r.ascent_type === "Flash" || r.ascent_type === "Onsight" ? "⚡" : ""}`).join(" · ") || "—"}${vintro ? ` + ${vintro}×vIntro(no-send)` : ""}  [utc ${times}]`);
 
+    let quit = false, skipped = false, savedFile = null;
+    redo: for (;;) {
     const dAns = await ask(`date [enter=${s.date} | b=-1day | YYYY-MM-DD | x=skip | q=quit]: `);
-    if (dAns.toLowerCase() === "q") break;
-    if (dAns.toLowerCase() === "x") { progress.done[s.key] = "skipped"; saveProgress(progress); continue; }
+    if (dAns.toLowerCase() === "q") { quit = true; break; }
+    if (dAns.toLowerCase() === "x") { skipped = true; break; }
     let date = s.date;
     if (dAns.toLowerCase() === "b") {
       const d = new Date(`${s.date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - 1);
       date = d.toISOString().slice(0, 10);
     } else if (/^\d{4}-\d{2}-\d{2}$/.test(dAns)) date = dAns;
 
+    // date collision: sessions already exist on this date (live or backfilled)
+    for (;;) {
+      const existing = existingOnDate(date);
+      if (!existing.length) break;
+      console.log(`${date} already has:`);
+      existing.forEach((e, i) => console.log(`  ${i + 1}) ${e.rel} — ${e.discipline ?? e.type}${e.gym_id ? ` (${e.gym_id.split("--")[0]})` : ""} · ${e.climbs} climbs`));
+      const col = await ask("[enter=log this as ADDITIONAL session | e=edit existing | x=skip this CSV session]: ");
+      if (col.toLowerCase() === "x") { skipped = true; break redo; }
+      if (col.toLowerCase() === "e") {
+        const which = existing.length === 1 ? existing[0]
+          : existing[Math.min(existing.length, Math.max(1, parseInt(await ask(`which? [1-${existing.length}]: `), 10) || 1)) - 1];
+        await openEditor(which.file);
+        created.push(which.file); // include edit in the end-of-run commit
+        continue; // re-show list; enter proceeds, x skips
+      }
+      break;
+    }
+
     const venue = await resolveVenue(s.gymCsv, progress);
     const isGym = venue.kind === "gym";
     const grading = isGym ? venue.gym.grading : "v_scale";
     const circuits = isGym ? venue.gym.circuits : [];
+    if (venue.createdFile) created.push(venue.createdFile); // new gym file must ship with the entries
     if (venue.auto) console.log(`venue: ${venue.gym.name} (mapped)`);
 
     const durA = await ask("duration min (enter skip): ");
     const duration = /^\d+$/.test(durA) ? parseInt(durA, 10) : null;
 
     const climbs = [];
-    for (const r of realRows) {
+    for (let ri = 0; ri < realRows.length; ri++) {
+      const r = realRows[ri];
       const flash = r.ascent_type === "Flash" || r.ascent_type === "Onsight";
       const known = /^\d+$/.test(r.attempts) ? parseInt(r.attempts, 10) : null;
       let grade = normGrade(r.grade, grading);
@@ -335,10 +385,20 @@ function commitAndPush(files, summary) {
       const c = { grade };
       if (r.climb_name) c.name = r.climb_name;
       if (!isGym && venue.kind !== "outdoor") {
-        const ang = await ask("  board angle ° (enter skip): ");
+        const ang = await ask("  board angle ° (enter skip, u=undo last climb): ");
+        if (ang.toLowerCase() === "u" && climbs.length) {
+          console.log(`  ↩ removed ${climbs.pop().grade} — redoing it`);
+          ri -= 2; continue;
+        }
         if (/^\d+$/.test(ang)) c.board_angle = parseInt(ang, 10);
       }
-      Object.assign(c, await askWallStyles(isGym));
+      const ws = await askWallStyles(isGym);
+      if (ws._undo) {
+        if (climbs.length) { console.log(`  ↩ removed ${climbs.pop().grade} — redoing it`); ri -= 2; }
+        else console.log("  nothing to undo");
+        continue;
+      }
+      Object.assign(c, ws);
       if (flash) c.attempts = known ?? 1;
       else if (known) c.attempts = known;
       else {
@@ -391,12 +451,23 @@ function commitAndPush(files, summary) {
       duration_min: duration,
       climbs: climbs.length ? climbs : null,
     };
-    const file = writeEntry("entries/load-events", id, fields, notes);
-    created.push(file);
-    progress.done[s.key] = path.relative(ROOT, file);
+
+    summarize(fields, notes);
+    const ok = await ask("save? [enter=save | r=redo session | d=discard (stays pending)]: ");
+    if (ok.toLowerCase() === "r") { console.log("  redoing session from the top…"); continue redo; }
+    if (ok.toLowerCase() === "d") { console.log("  discarded — session stays pending"); break; }
+
+    savedFile = writeEntry("entries/load-events", id, fields, notes);
+    created.push(savedFile);
+    progress.done[s.key] = path.relative(ROOT, savedFile);
     saveProgress(progress);
     doneThisRun++;
-    console.log(`✓ ${path.relative(ROOT, file)}  (${climbs.length} climbs, ${climbs.filter((c) => c.sent).length} sends) — ${pending.length - doneThisRun} left`);
+    console.log(`✓ ${path.relative(ROOT, savedFile)}  (${climbs.length} climbs, ${climbs.filter((c) => c.sent).length} sends) — ${pending.length - doneThisRun} left`);
+    break;
+    } // redo loop
+
+    if (quit) break;
+    if (skipped) { progress.done[s.key] = "skipped"; saveProgress(progress); continue; }
   }
 
   if (created.length) {
