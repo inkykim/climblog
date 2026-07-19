@@ -43,10 +43,13 @@ Prints `All climblog entries valid.` or per-file errors.
 
 ## Web dashboard (read-only)
 
-A static Svelte app in `app/` visualizes the data: a session timeline and a
-pain-recovery curve per injury. It reads a single `data.json` compiled from
-`entries/` + `injuries/` at build time (no auth, no per-file API calls). Logging
-from the app (auth + forms) is a later phase.
+A static Svelte app in `app/` renders the journal: a barcode day-strip and
+season tally, FIG. 1 (weekly training load x injury pain), and the full session
+index (click a row for notes and every climb). `#demo` shows a generated
+year of demo data; the About section content lives in `app/src/about.md`.
+It reads a single `data.json` compiled from `entries/` + `injuries/` at build
+time (no auth, no per-file API calls). Logging from the app (auth + forms) is
+a later phase.
 
 ```bash
 cd app
