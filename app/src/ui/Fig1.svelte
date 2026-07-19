@@ -14,12 +14,14 @@
     return PAD.l + ((new Date(`${dateStr}T00:00:00`).getTime() - span.a) / denom) * (W - PAD.l - PAD.r);
   };
 
-  const maxAttempts = $derived(Math.max(...weeks.map((w) => w.attempts), 1));
+  // minutes, not attempts: attempts only counts logged climbs — unlogged
+  // burns and warmups vanish. Time on is the honest load proxy.
+  const maxLoad = $derived(Math.max(...weeks.map((w) => w.minutes), 1));
   const loadPath = $derived.by(() => {
     let p = "";
     weeks.forEach((w, i) => {
       const x = X(w.week);
-      const y = H - PAD.b - (w.attempts / maxAttempts) * (H - PAD.t - PAD.b);
+      const y = H - PAD.b - (w.minutes / maxLoad) * (H - PAD.t - PAD.b);
       p += `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
     });
     return p;
@@ -49,7 +51,7 @@
 <section>
   <div class="cap">
     <h2>{label}</h2>
-    <span class="legend">▮ WEEKLY ATTEMPTS&nbsp;&nbsp;— PAIN 0–10 PER INJURY</span>
+    <span class="legend">▮ WEEKLY MINUTES ON&nbsp;&nbsp;— PAIN 0–10 PER INJURY</span>
   </div>
   {#if !span}
     <div class="chart emptybox">NO DATA YET — LOG SOMETHING TODAY.</div>
@@ -81,7 +83,7 @@
         <text x={bx + 5} y={PAD.t + 8} class="tick">LIVE</text>
       {/if}
       <line x1={PAD.l} x2={W - PAD.r} y1={H - PAD.b} y2={H - PAD.b} class="axis" />
-      <text x={PAD.l - 6} y={PAD.t + 8} class="tick" text-anchor="end">{weeks.length ? maxAttempts : 10}</text>
+      <text x={PAD.l - 6} y={PAD.t + 8} class="tick" text-anchor="end">{weeks.length ? maxLoad : 10}</text>
       <text x={PAD.l - 6} y={H - PAD.b} class="tick" text-anchor="end">0</text>
       {#each months as [ym] (ym)}
         <text x={X(ym + "-15")} y={H - 6} class="tick" text-anchor="middle">{fmtMonth(ym).split(" ")[0]}</text>

@@ -282,7 +282,9 @@ Historical data imported from the Kaya app (July 2025 – July 2026) is marked
   Known counts (e.g. a filmed flash = 1) are entered as real numbers with **no**
   estimated flag. `./log --kaya` provides this flow (`s` / `f` / `ps` / `pf`, or
   `<n>s` / `<n>f` for known counts) and chains multiple backdated sessions per run.
-- **`duration_min`** on kaya sessions is user-estimated from video timestamps.
+- **`duration_min`** on kaya sessions is user-estimated from video timestamps;
+  sessions with no estimate carry the convention default **90 min**, flagged
+  `duration_estimated: true`.
 - **Symptom observations** reconstructed from memory carry `source: retrospective`.
 - Dose-response / load analyses should discount or exclude `attempts_estimated`
   values and `retrospective` readings; FIG. 1 draws a divider between the
