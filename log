@@ -207,7 +207,7 @@ function existingOnDate(date) {
 
 async function openEditor(file) {
   if (!process.stdin.isTTY) { console.log(`  (non-interactive: edit ${file} yourself)`); return; }
-  const ed = process.env.EDITOR || "vi";
+  const ed = process.env.EDITOR || "nano";
   try { execFileSync(ed, [file], { cwd: ROOT, stdio: "inherit" }); }
   catch { console.log(`  editor exited with error — check ${file}`); }
 }
