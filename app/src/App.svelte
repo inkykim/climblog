@@ -3,13 +3,39 @@
   import Summary from "./lib/Summary.svelte";
   import Timeline from "./lib/Timeline.svelte";
   import InjuryCurve from "./lib/InjuryCurve.svelte";
+  import V1Index from "./demo/V1Index.svelte";
+  import V2Poster from "./demo/V2Poster.svelte";
+  import V3Charts from "./demo/V3Charts.svelte";
+
+  // #v1 / #v2 / #v3 → design-direction variants on demo data; no hash → real dashboard
+  const VARIANTS = { "#v1": V1Index, "#v2": V2Poster, "#v3": V3Charts };
+  let hash = $state(typeof location !== "undefined" ? location.hash : "");
+  const variant = $derived(VARIANTS[hash] ?? null);
 
   let data = $state(null);
+  let demoData = $state(null);
   let error = $state(null);
   let loading = $state(true);
 
+  // variants are stark white — override the gray app body while one is active
+  $effect(() => {
+    document.body.style.background = variant ? "#fff" : "";
+  });
+
+  async function loadDemo() {
+    if (demoData) return;
+    const res = await fetch(`${import.meta.env.BASE_URL}data-demo.json`);
+    if (res.ok) demoData = await res.json();
+  }
+
   onMount(async () => {
+    const onHash = () => {
+      hash = location.hash;
+      if (VARIANTS[hash]) loadDemo();
+    };
+    window.addEventListener("hashchange", onHash);
     try {
+      if (VARIANTS[hash]) await loadDemo();
       const res = await fetch(`${import.meta.env.BASE_URL}data.json`);
       if (!res.ok) throw new Error(`Could not load data.json (HTTP ${res.status})`);
       data = await res.json();
@@ -36,6 +62,14 @@
   );
 </script>
 
+{#if variant}
+  {#if demoData}
+    {@const Variant = variant}
+    <Variant data={demoData} />
+  {:else}
+    <p style="padding:40px;font-family:monospace">loading demo data…</p>
+  {/if}
+{:else}
 <header>
   <h1>climb<span>log</span></h1>
   <p class="tagline">training &amp; injury journal</p>
@@ -89,3 +123,4 @@
       : ""}
   </p>
 </footer>
+{/if}
