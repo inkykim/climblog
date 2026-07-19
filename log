@@ -40,7 +40,13 @@ if (process.stdin.isTTY) {
 } else {
   const queued = fs.readFileSync(0, "utf8").split("\n");
   ask = (q) => {
-    const a = (queued.shift() ?? "").trim();
+    const next = queued.shift();
+    if (next === undefined) {
+      // piped input exhausted — abort rather than defaulting every prompt
+      console.log("\n[piped input exhausted — aborting]");
+      process.exit(2);
+    }
+    const a = next.trim();
     process.stdout.write(q + a + "\n");
     return Promise.resolve(a);
   };
