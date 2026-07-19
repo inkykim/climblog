@@ -76,7 +76,7 @@ function injuryPenalty(dateStr) {
   return p;
 }
 
-const STYLES = ["crimp", "pinch", "slopy", "dynamic", "balance"];
+const STYLES = ["crimp", "pinch", "slopy", "dynamic", "balance", "coordination", "power"];
 const KILTER_NAMES = ["Sleepwalker", "Foghorn", "Jank Shui", "Boiler Room", "Static Cling", "Lowball Larry", "Doppler", "Mothership", "Casino", "Bad Manners"];
 const TB2_NAMES = ["Tension Classic 12", "Slopey Joe", "Full Value", "Kettle Logic", "The Bruiser", "Nerve Damage", "Soft Serve", "Grip Reaper"];
 const OUTDOOR = [

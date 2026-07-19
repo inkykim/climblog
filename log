@@ -22,6 +22,12 @@ const { execFileSync } = require("child_process");
 
 const ROOT = __dirname;
 const NO_GIT = process.argv.includes("--no-git");
+// Kaya backfill mode: chains multiple backdated sessions in one run, stamps
+// source: kaya, and replaces the attempts/sent prompts with a result shortcut
+// using the documented estimation convention (see codebook.md):
+//   s = send (attempts 5)   f = fail (10)   ps = project send (20)   pf = project fail (30)
+//   <n>s / <n>f = KNOWN attempts (e.g. 1s = filmed flash) — never flagged estimated
+const KAYA = process.argv.includes("--kaya");
 
 // Interactive: readline. Piped stdin (tests/automation): buffer all lines up
 // front and answer from the queue — readline drops lines that arrive between
@@ -260,8 +266,29 @@ async function pickGym() {
 
 // ---------- climb loop ----------
 
-const STYLES = { c: "crimp", p: "pinch", s: "slopy", d: "dynamic", b: "balance" };
+const STYLES = { c: "crimp", p: "pinch", s: "slopy", d: "dynamic", b: "balance", co: "coordination", po: "power" };
 const ANGLES = { s: "slab", v: "vert", o: "overhang" };
+
+// Kaya-backfill estimation convention (user-defined 2026-07-20).
+const KAYA_RESULTS = {
+  s: { attempts: 5, sent: true },
+  f: { attempts: 10, sent: false },
+  ps: { attempts: 20, sent: true },
+  pf: { attempts: 30, sent: false },
+};
+
+async function askResult() {
+  const a = await ask("  result [s=send f=fail ps=proj-send pf=proj-fail | <n>s/<n>f known, e.g. 1s]: ");
+  const conv = KAYA_RESULTS[a.toLowerCase()];
+  if (conv) return { ...conv, estimated: true };
+  const m = a.match(/^(\d{1,3})(s|f)$/i);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (n >= 1 && n <= 200) return { attempts: n, sent: m[2].toLowerCase() === "s", estimated: false };
+  }
+  console.log("  s / f / ps / pf, or a known count like 1s, 4f");
+  return askResult();
+}
 
 async function askRepeat(sent, gymStyle) {
   // one canonical field: repeat = sent this problem on a previous day
@@ -286,6 +313,8 @@ async function climbLoop(discipline, gym) {
       const grade = await askGrade(`climb ${n} — grade (enter when done): `, grading, circuits);
       if (grade === "") break;
       c.grade = grade;
+      const label = await ask("  label (project tracking, enter to skip): ");
+      if (label) c.name = label;
       c.wall_angle = await askChoice("  wall", ANGLES);
       c.styles = await askMulti("  styles", STYLES);
     } else {
@@ -297,8 +326,15 @@ async function climbLoop(discipline, gym) {
       if (discipline !== "outdoor") c.board_angle = await askInt("  board angle °", 0, 70, false);
     }
 
-    c.attempts = await askInt("  attempts", 1, 200, false);
-    c.sent = await askYN("  sent?", true);
+    if (KAYA) {
+      const r = await askResult();
+      c.attempts = r.attempts;
+      if (r.estimated) c.attempts_estimated = true;
+      c.sent = r.sent;
+    } else {
+      c.attempts = await askInt("  attempts", 1, 200, false);
+      c.sent = await askYN("  sent?", true);
+    }
     c.repeat = await askRepeat(c.sent, discipline === "gym");
     climbs.push(c);
     console.log(`  ✓ climb ${n} logged (${c.grade}${c.sent ? ", sent" : ""})`);
@@ -330,6 +366,7 @@ async function logClimbSession(date) {
     id,
     type: "climbing_session",
     date,
+    source: KAYA ? "kaya" : null,
     discipline,
     gym_id: gym ? gym.id : null,
     duration_min: duration,
@@ -363,6 +400,9 @@ async function logRest(date, type) {
 async function logInjuryCheck(date, injury) {
   const id = `${date}--${shortId()}`;
   const fields = { id, injury_id: injury.id, date };
+  // A reading dated more than a week back is memory, not observation — mark it.
+  const daysBack = (new Date(`${localToday()}T00:00:00`) - new Date(`${date}T00:00:00`)) / 86400000;
+  if (daysBack > 7) fields.source = "retrospective";
   fields.pain = await askInt(`  pain 0-10 (${injury.label})`, 0, 10, false);
   fields.load_tolerance = await askChoice("  load tolerance", {
     g: "green", y: "yellow", r: "red",
@@ -412,6 +452,24 @@ function commitAndPush(files, summary) {
   try {
     const created = [];
     const kinds = [];
+
+    if (KAYA) {
+      // Backfill chain: many backdated sessions in one run, one commit at the end.
+      console.log("KAYA BACKFILL — convention: s=send(5) f=fail(10) ps=proj-send(20) pf=proj-fail(30), <n>s/<n>f for known counts");
+      let count = 0;
+      for (;;) {
+        const date = await askDate();
+        created.push(...(await logClimbSession(date)));
+        count++;
+        if (!(await askYN(`session ${count} done — log another kaya session?`, true))) break;
+      }
+      kinds.push(`kaya backfill, ${count} session${count === 1 ? "" : "s"}`);
+      for (const f of created) console.log(`✓ wrote ${path.relative(ROOT, f)}`);
+      if (NO_GIT) console.log("(--no-git: skipping commit/push)");
+      else if (created.length) commitAndPush(created, kinds[0]);
+      closeInput();
+      return;
+    }
 
     const kind = await askChoice("log what", {
       c: "climb", w: "workout", r: "rest", n: "nothing", i: "injury-check", x: "new-injury",

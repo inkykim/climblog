@@ -34,6 +34,16 @@
     const obs = obsFor(data, injId);
     return obs.map((o, i) => `${i ? "L" : "M"}${X(o.date).toFixed(1)},${painY(o.pain).toFixed(1)}`).join("");
   }
+
+  // Provenance divider: retrospective Kaya-backfilled era vs live logging.
+  const kayaBoundary = $derived.by(() => {
+    const kaya = data.loadEvents.filter((e) => e.source === "kaya").map((e) => e.date);
+    if (!kaya.length) return null;
+    const live = data.loadEvents.filter((e) => !e.source && e.type === "climbing_session").map((e) => e.date);
+    const lastKaya = kaya.sort()[kaya.length - 1];
+    if (live.length && live.sort()[0] > lastKaya) return live.sort()[0];
+    return lastKaya;
+  });
 </script>
 
 <section>
@@ -64,6 +74,12 @@
             text-anchor={ax > W - 220 ? "end" : "start"}>{inj.label?.toUpperCase()}</text>
         {/if}
       {/each}
+      {#if kayaBoundary}
+        {@const bx = X(kayaBoundary)}
+        <line x1={bx} x2={bx} y1={PAD.t} y2={H - PAD.b} class="divider" />
+        <text x={bx - 5} y={PAD.t + 8} class="tick" text-anchor="end">RETROSPECTIVE</text>
+        <text x={bx + 5} y={PAD.t + 8} class="tick">LIVE</text>
+      {/if}
       <line x1={PAD.l} x2={W - PAD.r} y1={H - PAD.b} y2={H - PAD.b} class="axis" />
       <text x={PAD.l - 6} y={PAD.t + 8} class="tick" text-anchor="end">{weeks.length ? maxAttempts : 10}</text>
       <text x={PAD.l - 6} y={H - PAD.b} class="tick" text-anchor="end">0</text>
@@ -86,6 +102,7 @@
   .loadline { fill: none; stroke: #9a9a9a; stroke-width: 1; }
   .pain { fill: none; stroke: #000; stroke-width: 1.4; }
   .obsdot { fill: #000; }
+  .divider { stroke: #000; stroke-width: 1; stroke-dasharray: 2 4; }
   .tick { font-size: 8.5px; letter-spacing: 0.08em; fill: #888; font-family: ui-monospace, Menlo, monospace; }
   .anno { font-size: 8px; letter-spacing: 0.1em; fill: #000; font-weight: 600; }
 </style>

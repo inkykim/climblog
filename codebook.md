@@ -36,6 +36,7 @@ climbing sessions; `gym_id` required when `discipline: gym`):
 | `discipline` | `gym` · `kilter_board` · `tb2` · `outdoor` |
 | `gym_id` | id of a gym in `gyms/` (gym sessions) |
 | `location` | free text (e.g. outdoor crag), optional |
+| `source` | absent = logged live · `kaya` = backfilled from the Kaya app |
 | `duration_min` | integer minutes |
 | `climbs` | list of per-climb objects — see below |
 | `workout_type` | rest_workout only: list of `lifting` · `mobility` · `antagonist` · `cardio` · `hangboard` · `stretching` · `other` |
@@ -46,12 +47,13 @@ climbing sessions; `gym_id` required when `discipline: gym`):
 
 | field | values | applies to |
 |---|---|---|
-| `name` | climb name | boards + outdoor |
+| `name` | climb name (boards + outdoor); optional project label on gym climbs to link multi-session projects (e.g. `pink cave dyno`) | boards + outdoor + gym projects |
 | `grade` | raw grade in the venue's system: `V5` / `3kyu`, `1dan` / a circuit level defined by the gym | all |
 | `wall_angle` | `slab` · `vert` · `overhang` | gym |
-| `styles` | list of `crimp` · `pinch` · `slopy` · `dynamic` · `balance` (a climb can be several) | gym |
+| `styles` | list of `crimp` · `pinch` · `slopy` · `dynamic` · `balance` · `coordination` · `power` (a climb can be several) | gym |
 | `board_angle` | integer degrees 0–70 | boards |
 | `attempts` | integer ≥ 1 | all |
+| `attempts_estimated` | `true` when attempts is a backfill convention estimate, not a counted number | backfill |
 | `sent` | `true` / `false` | all |
 | `repeat` | `true` = sent this problem on a previous day. First send = `sent: true` + `repeat: false`. Asked even when not sent — failing a previously-sent problem is a regression signal. | all |
 
@@ -213,6 +215,7 @@ day-after reading is the most informative one.
 | `pain` | integer 0 (none) – 10 (worst) |
 | `load_tolerance` | `green` (loads fine) · `yellow` (caution) · `red` (avoid) |
 | `rom` | free text range-of-motion note |
+| `source` | absent = logged on/near the day · `retrospective` = reconstructed from memory (the CLI sets this automatically on readings dated >7 days back) |
 | `notes` | free text |
 
 ### Template
@@ -260,6 +263,30 @@ Felt a twinge on a deep lock. No pop.
 ```
 
 ---
+
+## Backfill provenance (Kaya era)
+
+Historical data imported from the Kaya app (July 2025 – July 2026) is marked
+`source: kaya` at the session level. Rules of that era, so analyses stay honest:
+
+- **Attempts convention** (when the true count is unknown), always flagged
+  `attempts_estimated: true`:
+
+  | result | attempts |
+  |---|---|
+  | send | 5 |
+  | fail | 10 |
+  | project send | 20 |
+  | project fail | 30 |
+
+  Known counts (e.g. a filmed flash = 1) are entered as real numbers with **no**
+  estimated flag. `./log --kaya` provides this flow (`s` / `f` / `ps` / `pf`, or
+  `<n>s` / `<n>f` for known counts) and chains multiple backdated sessions per run.
+- **`duration_min`** on kaya sessions is user-estimated from video timestamps.
+- **Symptom observations** reconstructed from memory carry `source: retrospective`.
+- Dose-response / load analyses should discount or exclude `attempts_estimated`
+  values and `retrospective` readings; FIG. 1 draws a divider between the
+  retrospective and live eras.
 
 ## Changing the vocabulary
 

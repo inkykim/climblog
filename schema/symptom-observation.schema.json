@@ -35,6 +35,10 @@
       "type": "string",
       "description": "Range-of-motion note, optional."
     },
+    "source": {
+      "enum": ["retrospective"],
+      "description": "Absent = logged on/near the day. 'retrospective' = reconstructed from memory well after the fact (backfill); treat as coarse in analyses."
+    },
     "notes": { "type": "string" }
   }
 }
