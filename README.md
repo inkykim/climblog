@@ -61,6 +61,10 @@ npm run build     # -> app/dist (static; deploy this)
 Deploy target: Cloudflare Pages (or any static host). Build command
 `cd app && npm install && npm run build`, output directory `app/dist`.
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ## Layout
 
 ```

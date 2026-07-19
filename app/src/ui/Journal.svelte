@@ -15,7 +15,7 @@
   {/if}
   <Fig1 {data} />
   <SessionIndex {data} />
-  <footer>CLIMBLOG — DATA LIVES IN THE REPO{demo ? " — DEMO DATA" : ""}.</footer>
+  <footer>CLIMBLOG <span class="by">by inky</span>{demo ? " — DEMO DATA" : ""}</footer>
 </div>
 
 <style>
@@ -25,5 +25,6 @@
     max-width: 1180px; margin: 0 auto; padding: 28px 32px 80px;
     font-size: 13px; line-height: 1.4;
   }
-  footer { margin-top: 60px; padding-top: 10px; border-top: 1px solid #000; font-size: 9.5px; letter-spacing: 0.14em; color: #888; }
+  footer { margin-top: 60px; padding-top: 10px; border-top: 1px solid #000; font-size: 9.5px; letter-spacing: 0.14em; color: #000; font-weight: 700; }
+  footer .by { color: #9a9a9a; letter-spacing: 0; text-transform: none; }
 </style>
