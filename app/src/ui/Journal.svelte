@@ -27,4 +27,9 @@
   }
   footer { margin-top: 60px; padding-top: 10px; border-top: 1px solid #000; font-size: 9.5px; letter-spacing: 0.14em; color: #000; font-weight: 700; }
   footer .by { color: #9a9a9a; letter-spacing: 0; text-transform: none; }
+
+  @media (max-width: 640px) {
+    .journal { padding: 18px 16px 56px; }
+    footer { margin-top: 40px; }
+  }
 </style>

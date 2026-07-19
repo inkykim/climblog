@@ -7,7 +7,14 @@
   const months = $derived(byMonth(data));
   const span = $derived(dateSpan(data));
 
-  const W = 1100, H = 240, PAD = { l: 34, r: 8, t: 12, b: 22 };
+  // render at measured width so SVG text stays real-size on phones
+  let cw = $state(0);
+  const W = $derived(cw || 1100);
+  const compact = $derived(W < 640);
+  const H = $derived(compact ? 190 : 240);
+  const PAD = { l: 34, r: 8, t: 12, b: 22 };
+  // thin out month labels when narrow
+  const monthStep = $derived(Math.max(1, Math.ceil(months.length / Math.max(2, Math.floor(W / 60)))));
   const X = (dateStr) => {
     if (!span) return PAD.l;
     const denom = Math.max(span.b - span.a, 1);
@@ -56,7 +63,8 @@
   {#if !span}
     <div class="chart emptybox">NO DATA YET — LOG SOMETHING TODAY.</div>
   {:else}
-    <svg viewBox="0 0 {W} {H}" class="chart">
+    <div class="chartwrap" bind:clientWidth={cw}>
+    <svg viewBox="0 0 {W} {H}" width={W} height={H} class="chart">
       {#each [0, 0.25, 0.5, 0.75, 1] as g (g)}
         <line x1={PAD.l} x2={W - PAD.r} y1={H - PAD.b - g * (H - PAD.t - PAD.b)} y2={H - PAD.b - g * (H - PAD.t - PAD.b)} class="grid" />
       {/each}
@@ -79,16 +87,21 @@
       {#if kayaBoundary}
         {@const bx = X(kayaBoundary)}
         <line x1={bx} x2={bx} y1={PAD.t} y2={H - PAD.b} class="divider" />
-        <text x={bx - 5} y={PAD.t + 8} class="tick" text-anchor="end">RETROSPECTIVE</text>
-        <text x={bx + 5} y={PAD.t + 8} class="tick">LIVE</text>
+        {#if !compact}
+          <text x={bx - 5} y={PAD.t + 8} class="tick" text-anchor="end">RETROSPECTIVE</text>
+          <text x={bx + 5} y={PAD.t + 8} class="tick">LIVE</text>
+        {/if}
       {/if}
       <line x1={PAD.l} x2={W - PAD.r} y1={H - PAD.b} y2={H - PAD.b} class="axis" />
       <text x={PAD.l - 6} y={PAD.t + 8} class="tick" text-anchor="end">{weeks.length ? maxLoad : 10}</text>
       <text x={PAD.l - 6} y={H - PAD.b} class="tick" text-anchor="end">0</text>
-      {#each months as [ym] (ym)}
-        <text x={X(ym + "-15")} y={H - 6} class="tick" text-anchor="middle">{fmtMonth(ym).split(" ")[0]}</text>
+      {#each months as [ym], mi (ym)}
+        {#if mi % monthStep === 0}
+          <text x={X(ym + "-15")} y={H - 6} class="tick" text-anchor="middle">{fmtMonth(ym).split(" ")[0]}</text>
+        {/if}
       {/each}
     </svg>
+    </div>
   {/if}
 </section>
 
@@ -96,6 +109,7 @@
   .cap { display: flex; align-items: baseline; gap: 16px; margin: 40px 0 10px; }
   h2 { font-size: 10px; letter-spacing: 0.16em; font-weight: 600; margin: 0; }
   .legend { font-size: 9px; letter-spacing: 0.1em; color: #888; }
+  .chartwrap { width: 100%; }
   .chart { width: 100%; height: auto; display: block; border: 1px solid #000; background: #fff; }
   .emptybox { padding: 60px 0; text-align: center; font-size: 10px; letter-spacing: 0.16em; color: #888; }
   .grid { stroke: #ececec; stroke-width: 1; }

@@ -38,20 +38,20 @@
     </thead>
     <tbody>
       {#if ss.length === 0}
-        <tr><td colspan="8" class="empty">NO SESSIONS YET.</td></tr>
+        <tr class="empty-row"><td colspan="8" class="empty">NO SESSIONS YET.</td></tr>
       {/if}
       {#each ss as e, i (e.id)}
         {@const s = sessionStats(e)}
         {@const hasDetail = !!(e._notes || e.climbs?.length)}
         <tr class="row" class:openrow={open === e.id} onclick={() => hasDetail && toggle(e.id)}>
-          <td class="mono dim">{String(ss.length - i).padStart(3, "0")}</td>
-          <td class="mono">{e.date}</td>
-          <td class="venue">{venueOf(e).toUpperCase()}</td>
-          <td class="dim">{TYPE_LABEL[e.discipline]?.toUpperCase()}</td>
-          <td class="r mono">{s.climbs}</td>
-          <td class="r mono">{s.sends}</td>
-          <td class="r mono top">{s.top?.toUpperCase() ?? "—"}</td>
-          <td class="r mono dim">{e.duration_min ?? "—"}</td>
+          <td class="mono dim c-no">{String(ss.length - i).padStart(3, "0")}</td>
+          <td class="mono c-date">{e.date}</td>
+          <td class="venue c-venue">{venueOf(e).toUpperCase()}</td>
+          <td class="dim c-type">{TYPE_LABEL[e.discipline]?.toUpperCase()}</td>
+          <td class="r mono c-climbs">{s.climbs}</td>
+          <td class="r mono c-sends">{s.sends}</td>
+          <td class="r mono top c-top">{s.top?.toUpperCase() ?? "—"}</td>
+          <td class="r mono dim c-min">{e.duration_min ?? "—"}</td>
         </tr>
         {#if open === e.id}
           <tr class="detail">
@@ -98,4 +98,40 @@
   .climbs { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { border: 1px solid #ccc; padding: 2px 8px; font-size: 10px; color: #888; white-space: nowrap; }
   .chip.sent { border-color: #000; color: #000; }
+
+  /* ---- mobile: each row becomes two lines (date · venue · top / meta) ---- */
+  @media (max-width: 640px) {
+    table, tbody { display: block; }
+    colgroup { display: none; }
+    thead { display: none; }
+    tbody { border-top: 1px solid #000; }
+    tr.row {
+      display: grid;
+      grid-template-columns: max-content max-content max-content 1fr max-content;
+      column-gap: 12px;
+      row-gap: 3px;
+      padding: 9px 0;
+      border-bottom: 1px solid #e3e3e3;
+    }
+    tr.row td { border: none; padding: 0; }
+    .c-no { display: none; }
+    .c-date { grid-row: 1; grid-column: 1; }
+    .c-venue {
+      grid-row: 1; grid-column: 2 / span 3;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .c-top { grid-row: 1; grid-column: 5; text-align: right; }
+    .c-type { grid-row: 2; grid-column: 1; font-size: 10px; letter-spacing: 0.08em; }
+    .c-climbs { grid-row: 2; grid-column: 2; text-align: left; font-size: 10.5px; color: #888; }
+    .c-sends { grid-row: 2; grid-column: 3; text-align: left; font-size: 10.5px; color: #888; }
+    .c-min { grid-row: 2; grid-column: 5; text-align: right; font-size: 10.5px; }
+    .c-climbs::after { content: " climbs"; }
+    .c-sends::after { content: " sends"; }
+    .c-min::after { content: " min"; }
+
+    tr.detail { display: block; border-bottom: 1px solid #000; }
+    tr.detail td:first-child { display: none; }
+    tr.detail td { display: block; padding: 10px 0 12px; }
+    tr.empty-row { display: block; }
+  }
 </style>

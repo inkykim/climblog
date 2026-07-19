@@ -69,4 +69,12 @@
   .strip i.none { background: #fff; }
 
   .tally { display: flex; gap: 26px; padding: 10px 0 0; font-size: 10.5px; letter-spacing: 0.12em; flex-wrap: wrap; }
+
+  @media (max-width: 640px) {
+    .masthead { flex-wrap: wrap; row-gap: 2px; }
+    .brand { font-size: 19px; }
+    .sub { order: 4; flex-basis: 100%; font-size: 9px; }
+    .tally { gap: 10px 18px; font-size: 9.5px; }
+    .strip { height: 20px; }
+  }
 </style>
