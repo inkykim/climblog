@@ -8,7 +8,21 @@ A web app for logging and visualizing this data is planned
 (see [`docs/plans/`](docs/plans/)), but the data format works on its own **today** — you
 can log by committing files.
 
-## Log an entry (by hand, right now)
+## Log an entry (the quick way)
+
+```bash
+./log
+```
+
+Answers a few prompts (~15 seconds), writes a valid entry file, commits, and
+pushes — all in one go. Handles climbing sessions, rest-day workouts, rest/nothing
+days, injury check-ins, and creating new injuries. After a session it offers a
+check-in for each active injury. Supports backdating (`y` = yesterday, or any
+`YYYY-MM-DD`). Use `./log --no-git` to write the file without committing.
+
+The goal is to log *something* every day — even a `rest` entry is two keystrokes.
+
+## Log an entry (by hand)
 
 1. Open [`codebook.md`](codebook.md) and copy the template for what you're logging:
    - a **load event** (climbing session, rest-day workout, or rest/nothing day) →
@@ -17,8 +31,6 @@ can log by committing files.
    - a new **injury** to track → `injuries/`
 2. Save it as `<date>--<shortid>.md` (the `id:` inside must match the filename).
 3. Commit and push. CI validates it automatically.
-
-The goal is to log *something* every day — even a one-line `type: rest` entry.
 
 ## Validate locally (optional)
 

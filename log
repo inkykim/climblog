@@ -1,0 +1,283 @@
+#!/usr/bin/env node
+/*
+ * climblog quick logger — one command to log today's entry and push it.
+ *
+ *   ./log            interactive: prompts, writes entry, validates shape,
+ *                    commits and pushes in one go (~15 seconds)
+ *   ./log --no-git   write the entry file only (no commit/push)
+ *
+ * Inputs are constrained to codebook values, so this CLI cannot produce a
+ * schema-invalid entry. CI (scripts/validate.py) remains the backstop.
+ */
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+const readline = require("readline");
+const { execFileSync } = require("child_process");
+
+const ROOT = __dirname;
+const NO_GIT = process.argv.includes("--no-git");
+
+// Interactive: readline. Piped stdin (tests/automation): buffer all lines up
+// front and answer from the queue — readline drops lines that arrive between
+// question() calls.
+let ask, closeInput;
+if (process.stdin.isTTY) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  ask = (q) => new Promise((res) => rl.question(q, (a) => res(a.trim())));
+  closeInput = () => rl.close();
+} else {
+  const queued = fs.readFileSync(0, "utf8").split("\n");
+  ask = (q) => {
+    const a = (queued.shift() ?? "").trim();
+    process.stdout.write(q + a + "\n");
+    return Promise.resolve(a);
+  };
+  closeInput = () => {};
+}
+
+// ---------- helpers ----------
+
+function localToday(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function shortId() {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+async function askDate() {
+  const a = await ask(`date [today ${localToday()}, or "y" for yesterday, or YYYY-MM-DD]: `);
+  if (a === "" || a.toLowerCase() === "t") return localToday();
+  if (a.toLowerCase() === "y") return localToday(-1);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(a)) {
+    if (a > localToday()) {
+      const ok = await ask(`  ${a} is in the future — sure? [y/N]: `);
+      if (ok.toLowerCase() !== "y") return askDate();
+    }
+    return a;
+  }
+  console.log("  format: YYYY-MM-DD");
+  return askDate();
+}
+
+async function askInt(label, min, max, optional = true) {
+  const a = await ask(`${label}${optional ? " (enter to skip)" : ""}: `);
+  if (a === "" && optional) return null;
+  const n = parseInt(a, 10);
+  if (Number.isInteger(n) && n >= min && n <= max) return n;
+  console.log(`  need an integer ${min}-${max}`);
+  return askInt(label, min, max, optional);
+}
+
+async function askChoice(label, choices, optional = false) {
+  // choices: { key: value }
+  const menu = Object.entries(choices).map(([k, v]) => `${k}=${v}`).join(" ");
+  const a = await ask(`${label} [${menu}]${optional ? " (enter to skip)" : ""}: `);
+  if (a === "" && optional) return null;
+  if (choices[a.toLowerCase()]) return choices[a.toLowerCase()];
+  console.log("  pick one of the letters");
+  return askChoice(label, choices, optional);
+}
+
+async function askMulti(label, choices, optional = true) {
+  const menu = Object.entries(choices).map(([k, v]) => `${k}=${v}`).join(" ");
+  const a = await ask(`${label}, comma-sep [${menu}]${optional ? " (enter to skip)" : ""}: `);
+  if (a === "" && optional) return null;
+  const picked = [];
+  for (const part of a.split(",").map((s) => s.trim().toLowerCase())) {
+    if (!choices[part]) {
+      console.log(`  unknown "${part}" — use the letters shown`);
+      return askMulti(label, choices, optional);
+    }
+    if (!picked.includes(choices[part])) picked.push(choices[part]);
+  }
+  return picked.length ? picked : null;
+}
+
+function yamlValue(v) {
+  if (Array.isArray(v)) return `[${v.join(", ")}]`;
+  if (typeof v === "string" && /[:#]/.test(v)) return JSON.stringify(v);
+  return String(v);
+}
+
+function writeEntry(dir, id, fields, notes) {
+  const lines = ["---"];
+  for (const [k, v] of Object.entries(fields)) {
+    if (v === null || v === undefined) continue;
+    lines.push(`${k}: ${yamlValue(v)}`);
+  }
+  lines.push("---");
+  const body = notes ? `${notes}\n` : "";
+  const file = path.join(ROOT, dir, `${id}.md`);
+  fs.writeFileSync(file, lines.join("\n") + "\n" + body);
+  return file;
+}
+
+function loadInjuries() {
+  const dir = path.join(ROOT, "injuries");
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => {
+      const text = fs.readFileSync(path.join(dir, f), "utf8");
+      const get = (k) => (text.match(new RegExp(`^${k}:\\s*(.+)$`, "m")) || [])[1]?.trim();
+      return { id: get("id"), label: get("label") || get("site"), status: get("status") };
+    })
+    .filter((i) => i.id);
+}
+
+// ---------- record flows ----------
+
+async function logClimb(date) {
+  const id = `${date}--${shortId()}`;
+  const fields = { id, type: "climbing_session", date };
+  fields.duration_min = await askInt("duration min", 0, 1440);
+  fields.disciplines = await askMulti("disciplines", {
+    b: "boulder", l: "lead", t: "top_rope", o: "board", a: "autobelay",
+  });
+  fields.volume = await askInt("volume (climbs attempted)", 0, 500);
+  const hs = await ask("hardest send (e.g. V5 / 5.11c, enter to skip): ");
+  if (hs) fields.hardest_send = hs;
+  fields.rpe = await askInt("RPE 1-10", 1, 10);
+  const notes = await ask("notes (enter to skip): ");
+  return [writeEntry("entries/load-events", id, fields, notes)];
+}
+
+async function logWorkout(date) {
+  const id = `${date}--${shortId()}`;
+  const fields = { id, type: "rest_workout", date };
+  fields.duration_min = await askInt("duration min", 0, 1440);
+  fields.workout_type = await askMulti("workout type", {
+    l: "lifting", m: "mobility", a: "antagonist", c: "cardio",
+    h: "hangboard", s: "stretching", o: "other",
+  });
+  fields.rpe = await askInt("RPE 1-10", 1, 10);
+  const notes = await ask("notes (enter to skip): ");
+  return [writeEntry("entries/load-events", id, fields, notes)];
+}
+
+async function logRest(date, type) {
+  const id = `${date}--${shortId()}`;
+  const notes = await ask("notes (enter to skip): ");
+  return [writeEntry("entries/load-events", id, { id, type, date }, notes)];
+}
+
+async function logInjuryCheck(date, injury) {
+  const id = `${date}--${shortId()}`;
+  const fields = { id, injury_id: injury.id, date };
+  fields.pain = await askInt(`  pain 0-10 (${injury.label})`, 0, 10, false);
+  fields.load_tolerance = await askChoice("  load tolerance", {
+    g: "green", y: "yellow", r: "red",
+  });
+  const rom = await ask("  ROM note (enter to skip): ");
+  if (rom) fields.rom = rom;
+  const notes = await ask("  notes (enter to skip): ");
+  return writeEntry("entries/symptom-observations", id, fields, notes);
+}
+
+async function logNewInjury() {
+  const site = await askChoice("site", {
+    a2: "finger_a2", a4: "finger_a4", fp: "finger_pulley_other",
+    ft: "finger_flexor_tendon", em: "elbow_medial", el: "elbow_lateral",
+    sh: "shoulder", wr: "wrist", fa: "forearm", kn: "knee", ba: "back", o: "other",
+  });
+  const label = await ask("label (e.g. 'left ring A2 pulley'): ");
+  const onset = await askDate();
+  const slug =
+    (label || site).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") ||
+    "injury";
+  const id = `${slug}--${shortId()}`;
+  const notes = await ask("notes (enter to skip): ");
+  return [
+    writeEntry("injuries", id, { id, site, label: label || null, onset_date: onset, status: "active" }, notes),
+  ];
+}
+
+// ---------- git ----------
+
+function git(...args) {
+  return execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+}
+
+function commitAndPush(files, summary) {
+  git("add", ...files.map((f) => path.relative(ROOT, f)));
+  git("commit", "-m", `log: ${summary}`);
+  console.log(`✓ committed: log: ${summary}`);
+  try {
+    execFileSync("git", ["push"], { cwd: ROOT, stdio: "pipe" });
+    console.log("✓ pushed");
+  } catch {
+    console.log("⚠ push failed (offline?) — entry is committed locally; push later with: git push");
+  }
+}
+
+// ---------- main ----------
+
+(async function main() {
+  try {
+    const created = [];
+    const kinds = [];
+
+    const kind = await askChoice("log what", {
+      c: "climb", w: "workout", r: "rest", n: "nothing", i: "injury-check", x: "new-injury",
+    });
+
+    if (kind === "new-injury") {
+      created.push(...(await logNewInjury()));
+      kinds.push("new injury");
+    } else if (kind === "injury-check") {
+      const injuries = loadInjuries().sort((a, b) => (a.status === "active" ? -1 : 1));
+      if (!injuries.length) {
+        console.log("no injuries tracked — use x (new-injury) first");
+        closeInput();
+        return;
+      }
+      const date = await askDate();
+      for (let i = 0; i < injuries.length; i++)
+        console.log(`  ${i + 1}) ${injuries[i].label} [${injuries[i].status}]`);
+      const n = await askInt("which injury (number)", 1, injuries.length, false);
+      created.push(await logInjuryCheck(date, injuries[n - 1]));
+      kinds.push("injury-check");
+    } else {
+      const date = await askDate();
+      if (kind === "climb") created.push(...(await logClimb(date)));
+      else if (kind === "workout") created.push(...(await logWorkout(date)));
+      else created.push(...(await logRest(date, kind === "rest" ? "rest" : "nothing")));
+      kinds.push(kind);
+
+      // Day-of/day-after readings are the most informative — offer check-ins
+      // for every active injury after any load event.
+      const active = loadInjuries().filter((i) => i.status === "active");
+      for (const inj of active) {
+        const yn = await ask(`log a check-in for "${inj.label}"? [Y/n]: `);
+        if (yn === "" || yn.toLowerCase() === "y") {
+          created.push(await logInjuryCheck(date, inj));
+          kinds.push("injury-check");
+        }
+      }
+    }
+
+    for (const f of created) console.log(`✓ wrote ${path.relative(ROOT, f)}`);
+
+    if (NO_GIT) {
+      console.log("(--no-git: skipping commit/push)");
+    } else if (created.length) {
+      const dateTag = /(\d{4}-\d{2}-\d{2})/.exec(path.basename(created[0]))?.[1] ?? localToday();
+      commitAndPush(created, `${dateTag} (${kinds.join(", ")})`);
+    }
+    closeInput();
+  } catch (e) {
+    console.error(`error: ${e.message}`);
+    closeInput();
+    process.exit(1);
+  }
+})();
