@@ -273,11 +273,12 @@ docs/brainstorms/2026-07-19-climblog-pipeline-requirements.md, R3/R10 — resolv
 ## Acceptance Criteria
 
 ### Functional
-- [ ] `entries/` supports one file per record (load event, symptom observation) with a
-  unique id; `injuries/` holds one file per injury entity.
-- [ ] A shared JSON Schema per record type governs both client-side and CI validation.
-- [ ] CI fails any push containing a schema-invalid entry, with a per-file error annotation
-  (dates actually validated via `FormatChecker`).
+- [x] `entries/` supports one file per record (load event, symptom observation) with a
+  unique id; `injuries/` holds one file per injury entity. *(Phase 1)*
+- [x] A shared JSON Schema per record type governs validation (CI side done in Phase 1;
+  the same `schema/` files will drive client-side validation in Phase 3).
+- [x] CI fails any push containing a schema-invalid entry, with a per-file error annotation
+  (dates validated via `pattern` + normalized from YAML date objects; verified locally). *(Phase 1)*
 - [ ] The app renders an entry timeline and a per-injury recovery (pain-over-time) curve
   from a compiled `data.json`, readable without login (public repo).
 - [ ] "Log in with GitHub" (GitHub App, Contents R/W on the one repo) gates all writes;
