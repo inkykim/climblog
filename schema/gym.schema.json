@@ -15,7 +15,7 @@
     "name": { "type": "string" },
     "grading": {
       "enum": ["v_scale", "kyu_dan", "circuit"],
-      "description": "v_scale: V0..V17. kyu_dan: Japanese 級/段 (e.g. 5kyu, 1dan). circuit: gym-defined levels, each mapping to an approx V range."
+      "description": "v_scale: V0..V17. kyu_dan: Japanese 級/段, stored compact (5q, 1d). circuit: gym-defined levels, each mapping to an approx V range. The canonical normalized scale sits exactly between TB2 and Kilter grading — see codebook.md."
     },
     "circuits": {
       "type": "array",

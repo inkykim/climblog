@@ -176,8 +176,26 @@ circuits:
 ---
 ```
 
-Grade formats by system: `v_scale` → `V0`–`V17` (or `VB`); `kyu_dan` → `8kyu` … `1kyu`,
-`1dan` … ; `circuit` → one of that gym's defined level names.
+Grade formats by system: `v_scale` → `V0`–`V17` (or `VB`); `kyu_dan` → compact form
+`8q` … `1q`, then `1d`, `2d` … (the CLI accepts `5kyu`/`5k`/`5q` and `1dan`/`1D`/`1d`
+and normalizes); `circuit` → one of that gym's defined level names.
+
+### Normalization anchor (for future analysis)
+
+The **canonical grade scale is defined as exactly midway between TB2 and Kilter**
+grading of the same nominal V grade — TB2 runs sandbagged, Kilter runs soft, and the
+"true" grade is anchored at their midpoint:
+
+```
+standard(Vn) = midpoint( TB2 Vn , Kilter Vn )
+```
+
+Everything else normalizes onto that anchor: board sessions provide the calibration
+data directly (same climber, same nominal grades, both boards), and each gym's
+observed sends — via its `circuits` V-ranges or kyu-dan grades — get mapped relative
+to it. This is what makes per-gym soft/sandbag scoring possible later. Nothing about
+the anchor is stored per-entry: climbs always store the **raw grade in the venue's
+own system**; normalization is purely an analysis-time transform.
 
 ---
 

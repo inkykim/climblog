@@ -192,9 +192,13 @@ async function askGrade(prompt, grading, circuits) {
     return askGrade(prompt, grading, circuits);
   }
   if (grading === "kyu_dan") {
-    const m = a.match(/^(\d{1,2})\s*(kyu|k|dan|d)$/i);
-    if (m) return `${m[1]}${m[2].toLowerCase().startsWith("k") ? "kyu" : "dan"}`;
-    console.log("  kyu/dan, e.g. 5kyu, 5k, 1dan, 1d");
+    // normalize to compact form: 5q (kyu) / 1d (dan)
+    const m = a.match(/^(\d{1,2})\s*(kyu|k|q|dan|d)$/i);
+    if (m) {
+      const suffix = /^(k|q)/i.test(m[2]) ? "q" : "d";
+      return `${m[1]}${suffix}`;
+    }
+    console.log("  kyu/dan, e.g. 5q (or 5kyu) / 1d (or 1dan)");
     return askGrade(prompt, grading, circuits);
   }
   // circuit: must be one of the gym's defined levels
