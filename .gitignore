@@ -14,3 +14,4 @@ dist/
 app/public/data.json
 app/public/data-demo.json
 backfill/
+.climblog-state.json

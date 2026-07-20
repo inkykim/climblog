@@ -14,13 +14,14 @@ can log by committing files.
 ./log
 ```
 
-Answers a few prompts (~15 seconds), writes a valid entry file, commits, and
-pushes — all in one go. Handles climbing sessions, rest-day workouts, rest/nothing
-days, injury check-ins, and creating new injuries. After a session it offers a
-check-in for each active injury. Supports backdating (`y` = yesterday, or any
-`YYYY-MM-DD`). Use `./log --no-git` to write the file without committing.
+Enter-through defaults (climb, gym, last venue), one line per climb
+(`grade → wall+styles → attempts` with `4f` = fail), then a one-number injury
+pulse per active injury. Writes a valid entry, commits, and pushes in one go.
+Also handles workouts, injury check-ins (`i`), new injuries (`x`), and resolving
+them (`z`). Supports backdating (`y` = yesterday, or any `YYYY-MM-DD`).
+Use `./log --no-git` to write the file without committing.
 
-The goal is to log *something* every day — even a `rest` entry is two keystrokes.
+Rest days are implicit — log sessions; a gap in the barcode is a rest day.
 
 ## Log an entry (by hand)
 

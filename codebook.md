@@ -23,8 +23,13 @@ anything below the closing `---` is freeform notes (ignored by validation).
 
 ## Record type: load event
 
-One per training day — a climbing session, a rest-day workout, or a minimal rest/nothing
-day. Log *something* every day. A gym day and a board day are **two sessions** (two files).
+One per training day — usually a climbing session. **Rest is implicit: a date with no
+entry is a rest day** (decided 2026-07-20 after the data showed a pure session journal —
+no fake `rest`/`nothing` entries needed; the types remain valid but optional). A gym day
+and a board day are **two sessions** (two files).
+
+Injury *pulse* readings (the one-number pain prompt after a session) auto-derive
+`load_tolerance` from pain (≥5 red, ≥2 yellow, else green) unless you append r/y/g.
 
 **Session fields** (`id`, `type`, `date` always required; `discipline` required for
 climbing sessions; `gym_id` required when `discipline: gym`):

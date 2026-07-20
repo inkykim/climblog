@@ -291,16 +291,27 @@ async function askGrade(prompt, grading, circuits) {
 
 // ---------- gym registry ----------
 
+const STATE = path.join(ROOT, ".climblog-state.json");
+function loadState() {
+  try { return JSON.parse(fs.readFileSync(STATE, "utf8")); } catch { return {}; }
+}
+const saveState = (s) => fs.writeFileSync(STATE, JSON.stringify(s));
+
 async function pickGym() {
   const gyms = loadGyms();
-  if (gyms.length) console.log(`known gyms: ${gyms.map((g) => g.name).join(", ")}`);
-  const name = await ask("gym name: ");
+  const state = loadState();
+  const last = gyms.find((g) => g.id === state.lastGymId);
+  if (gyms.length && !last) console.log(`known gyms: ${gyms.map((g) => g.name).join(", ")}`);
+  const name = (await ask(`gym name${last ? ` [enter=${last.name}]` : ""}: `)) || last?.name;
   if (!name) return pickGym();
 
   const found = gyms.find(
     (g) => g.name?.toLowerCase() === name.toLowerCase() || slugify(g.name || "") === slugify(name),
   );
-  if (found) return { gym: found, created: null };
+  if (found) {
+    saveState({ ...state, lastGymId: found.id });
+    return { gym: found, created: null };
+  }
 
   console.log(`new gym "${name}" — one-time grading setup:`);
   const grading = await askChoice("  grading system", {
@@ -333,6 +344,7 @@ async function pickGym() {
     "",
   );
   console.log(`✓ wrote ${path.relative(ROOT, file)}`);
+  saveState({ ...loadState(), lastGymId: id });
   return {
     gym: { id, name, grading, circuits: circuits.map((c) => c.name) },
     created: file,
@@ -365,14 +377,45 @@ async function askResult() {
   return askResult();
 }
 
-async function askRepeat(sent, gymStyle) {
-  // one canonical field: repeat = sent this problem on a previous day
-  if (gymStyle) {
-    if (sent) return !(await askYN("  first send of this problem?", true));
-    return askYN("  have you sent this problem before?", false);
+// combined wall+styles one-liner, e.g. "o c,d" (mirrors backfill.js)
+async function askWallStyles() {
+  const a = await ask("  wall+styles [e.g. 'o c,d' | enter skip]: ");
+  if (a === "") return {};
+  const [w, ...rest] = a.split(/\s+/);
+  const out = {};
+  if (ANGLES[w?.toLowerCase()]) out.wall_angle = ANGLES[w.toLowerCase()];
+  const styleStr = rest.join(",");
+  if (styleStr) {
+    const styles = styleStr.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+      .map((s) => STYLES[s]).filter(Boolean);
+    if (styles.length) out.styles = [...new Set(styles)];
   }
-  if (sent) return askYN("  repeat (sent this before)?", false);
-  return askYN("  have you sent this before?", false);
+  if (!out.wall_angle && !out.styles) {
+    console.log("  wall s/v/o then styles c,p,s,d,b,co,po — e.g. 'o c,d'");
+    return askWallStyles();
+  }
+  return out;
+}
+
+// attempts with fail suffix: "2" = sent in 2, "4f" = failed after 4
+async function askAttemptsF() {
+  const a = await ask("  attempts [<n>=sent | <n>f=fail]: ");
+  const m = a.match(/^(\d{1,3})(f?)$/i);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (n >= 1 && n <= 200) return { attempts: n, sent: !m[2] };
+  }
+  console.log("  e.g. 2 (sent in 2) or 4f (failed after 4)");
+  return askAttemptsF();
+}
+
+// repeat + optional project label in one prompt (mirrors backfill.js)
+async function askRepeatLabel() {
+  const a = await ask("  extras [enter=first send | r=repeat | 'name' or 'r name' to label]: ");
+  if (a === "") return { repeat: false };
+  if (a.toLowerCase() === "r") return { repeat: true };
+  if (/^r\s+/i.test(a)) return { repeat: true, name: a.replace(/^r\s+/i, "") };
+  return { repeat: false, name: a };
 }
 
 async function climbLoop(discipline, gym) {
@@ -393,10 +436,7 @@ async function climbLoop(discipline, gym) {
         continue;
       }
       c.grade = grade;
-      const label = await ask("  label (project tracking, enter to skip): ");
-      if (label) c.name = label;
-      c.wall_angle = await askChoice("  wall", ANGLES);
-      c.styles = await askMulti("  styles", STYLES);
+      Object.assign(c, await askWallStyles());
     } else {
       const name = await ask(`climb ${n} — name (enter=done, u=undo last): `);
       if (name === "") break;
@@ -417,10 +457,13 @@ async function climbLoop(discipline, gym) {
       if (r.estimated) c.attempts_estimated = true;
       c.sent = r.sent;
     } else {
-      c.attempts = await askInt("  attempts", 1, 200, false);
-      c.sent = await askYN("  sent?", true);
+      const r = await askAttemptsF();
+      c.attempts = r.attempts;
+      c.sent = r.sent;
     }
-    c.repeat = await askRepeat(c.sent, discipline === "gym");
+    const rl = await askRepeatLabel();
+    c.repeat = rl.repeat;
+    if (rl.name && !c.name) c.name = rl.name;
     climbs.push(c);
     console.log(`  ✓ climb ${n} logged (${c.grade}${c.sent ? ", sent" : ""})`);
   }
@@ -432,9 +475,10 @@ async function climbLoop(discipline, gym) {
 async function logClimbSession(date) {
   const extraFiles = [];
   for (;;) {
-    const discipline = await askChoice("discipline", {
-      g: "gym", k: "kilter_board", t: "tb2", o: "outdoor",
-    });
+    // enter = gym (107 of 113 sessions)
+    const dAns = await ask("discipline [ENTER=gym k=kilter t=tb2 o=outdoor]: ");
+    const discipline = { "": "gym", g: "gym", k: "kilter_board", t: "tb2", o: "outdoor" }[dAns.toLowerCase()];
+    if (!discipline) { console.log("  g/k/t/o"); continue; }
 
     let gym = null;
     if (discipline === "gym") {
@@ -586,9 +630,13 @@ function commitAndPush(files, summary) {
       return;
     }
 
-    const kind = await askChoice("log what", {
-      c: "climb", w: "workout", r: "rest", n: "nothing", i: "injury-check", x: "new-injury", z: "resolve-injury",
-    });
+    // enter = climb: 113 of 113 logged load events are climbing sessions
+    const kindAns = await ask(
+      "log what [ENTER=climb w=workout r=rest n=nothing i=injury-check x=new-injury z=resolve-injury]: ",
+    );
+    const KINDS = { "": "climb", c: "climb", w: "workout", r: "rest", n: "nothing", i: "injury-check", x: "new-injury", z: "resolve-injury" };
+    const kind = KINDS[kindAns.toLowerCase()];
+    if (!kind) { console.log("unknown option"); closeInput(); return; }
 
     if (kind === "new-injury") {
       created.push(...(await logNewInjury()));
@@ -621,13 +669,28 @@ function commitAndPush(files, summary) {
       else created.push(...(await logRest(date, kind === "rest" ? "rest" : "nothing")));
       kinds.push(kind);
 
-      // Day-of/day-after readings are the most informative — offer check-ins
-      // for every active injury after any load event.
+      // Injury pulse: one number per active injury, in-flow. The 4-prompt
+      // check-in produced 2 live readings in 2 weeks — friction was starving
+      // the dose-response dataset. Full check-in still available via `i`.
       const active = loadInjuries().filter((i) => i.status === "active");
       for (const inj of active) {
-        if (await askYN(`log a check-in for "${inj.label}"?`, true)) {
-          created.push(await logInjuryCheck(date, inj));
-          kinds.push("injury-check");
+        for (;;) {
+          const a = await ask(`${inj.label} — pain? [0-10, add r/y/g to set tolerance, enter=skip]: `);
+          if (a === "") break;
+          const m = a.match(/^(10|\d)\s*(r|y|g)?$/i);
+          if (!m) { console.log("  e.g. 3, 5r, 0g"); continue; }
+          const pain = parseInt(m[1], 10);
+          const tol = m[2]
+            ? { r: "red", y: "yellow", g: "green" }[m[2].toLowerCase()]
+            : pain >= 5 ? "red" : pain >= 2 ? "yellow" : "green";
+          const oid = `${date}--${shortId()}`;
+          const fields = { id: oid, injury_id: inj.id, date, pain, load_tolerance: tol };
+          const daysBack = (new Date(`${localToday()}T00:00:00`) - new Date(`${date}T00:00:00`)) / 86400000;
+          if (daysBack > 7) fields.source = "retrospective";
+          created.push(writeEntry("entries/symptom-observations", oid, fields, ""));
+          kinds.push("pulse");
+          console.log(`  ✓ ${inj.label}: pain ${pain} (${tol})`);
+          break;
         }
       }
     }
