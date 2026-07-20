@@ -1,17 +1,18 @@
 <script>
   import { totals, byDay, dateSpan, fmtMonth } from "./derive.js";
 
-  let { data, aboutOpen = $bindable(false), demo = false } = $props();
+  let { data, aboutOpen = $bindable(false), demo = false, view = "archive" } = $props();
 
   const t = $derived(totals(data));
   const days = $derived(byDay(data));
   const span = $derived(dateSpan(data));
 
+  // nav now carries "TRAINING ARCHIVE"; the sub is just the span
   const sub = $derived.by(() => {
-    if (!span) return "TRAINING ARCHIVE";
+    if (!span) return "";
     const f = fmtMonth(span.first.slice(0, 7)).replace(" ", " 20");
     const l = fmtMonth(span.last.slice(0, 7)).replace(" ", " 20");
-    return `TRAINING ARCHIVE — ${f === l ? f : `${f} / ${l}`}${demo ? " — DEMO DATA" : ""}`;
+    return `${f === l ? f : `${f} / ${l}`}${demo ? " — DEMO DATA" : ""}`;
   });
 
   const strip = $derived.by(() => {
@@ -32,6 +33,8 @@
     <span class="by">by inky</span>
     <span class="sub">{sub}</span>
     <nav>
+      <a href={demo ? "#demo" : "#"} class:on={view === "archive"}>TRAINING ARCHIVE</a>
+      <a href="#blog" class:on={view !== "archive"}>BLOG</a>
       <button class="about" class:on={aboutOpen} onclick={() => (aboutOpen = !aboutOpen)}>
         ABOUT{aboutOpen ? " —" : " +"}
       </button>
@@ -54,12 +57,15 @@
   .brand { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
   .by { font-size: 12px; font-weight: 700; color: #9a9a9a; margin-left: -8px; }
   .sub { font-size: 10px; letter-spacing: 0.14em; }
-  nav { margin-left: auto; }
+  nav { margin-left: auto; display: flex; gap: 16px; align-items: baseline; }
+  nav a { color: #999; text-decoration: none; font-size: 10px; letter-spacing: 0.14em; }
+  nav a.on { color: #000; border-bottom: 1px solid #000; }
+  nav a:hover { color: #000; }
   .about {
     background: none; border: none; padding: 0; cursor: pointer;
-    font-family: inherit; color: #000; font-size: 10px; letter-spacing: 0.14em;
+    font-family: inherit; color: #999; font-size: 10px; letter-spacing: 0.14em;
   }
-  .about.on, .about:hover { border-bottom: 1px solid #000; }
+  .about.on, .about:hover { color: #000; border-bottom: 1px solid #000; }
 
   .strip { display: flex; width: 100%; height: 26px; border-top: 1px solid #000; border-bottom: 1px solid #000; align-items: stretch; }
   .strip i { flex: 1 1 0; }

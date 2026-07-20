@@ -41,6 +41,15 @@ function loadDir(rel) {
 }
 
 const gyms = loadDir("gyms");
+const injuriesAll = loadDir("injuries");
+// posts: drafts never ship; injury label joined for the meta line
+const posts = loadDir("posts")
+  .filter((p) => !p.draft)
+  .map((p) => {
+    const inj = p.injury_id ? injuriesAll.find((i) => i.id === p.injury_id) : null;
+    return inj ? { ...p, injury_label: inj.label ?? inj.site } : p;
+  })
+  .sort((a, b) => b.date.localeCompare(a.date));
 const loadEvents = loadDir("entries/load-events").map((e) => {
   // join gym name in at compile time so the app never needs a lookup
   const gym = e.gym_id ? gyms.find((g) => g.id === e.gym_id) : null;
@@ -51,8 +60,9 @@ const data = {
   generatedAt: new Date().toISOString(),
   loadEvents,
   symptomObservations: loadDir("entries/symptom-observations"),
-  injuries: loadDir("injuries"),
+  injuries: injuriesAll,
   gyms,
+  posts,
 };
 
 const outDir = join(APP, "public");
@@ -62,5 +72,5 @@ writeFileSync(join(outDir, "data.json"), JSON.stringify(data, null, 2));
 console.log(
   `compiled data.json: ${data.loadEvents.length} load events, ` +
     `${data.symptomObservations.length} symptom observations, ` +
-    `${data.injuries.length} injuries`,
+    `${data.injuries.length} injuries, ${posts.length} posts`,
 );

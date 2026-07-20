@@ -295,6 +295,25 @@ Historical data imported from the Kaya app (July 2025 – July 2026) is marked
   values and `retrospective` readings; FIG. 1 draws a divider between the
   retrospective and live eras.
 
+## Record type: post
+
+Long-form writing (injury deep-dives, progress thoughts) in `posts/YYYY-MM-DD--slug.md`.
+Written via `./post "title"` (scaffold → editor → deterministic tidy → commit).
+
+**Fields** (`id`, `title`, `date` required):
+
+| field | values |
+|---|---|
+| `title` | post title (any text) |
+| `date` | `YYYY-MM-DD` |
+| `injury_id` | optional link to an injury in `injuries/` — shown as RE: on the site |
+| `draft` | `true` = excluded from the rendered site (file stays public in the repo) |
+
+Body is markdown subset: `##`/`###` headings, `**bold**`, `*italic*`, `[link](url)`,
+`![img](path)`, `> quote`, `-`/`1.` lists, `---` rule, `` `code` ``. Unknown syntax
+renders as plain text. Tidy converts straight quotes/`--` to typographic ones and
+never rewrites words.
+
 ## Changing the vocabulary
 
 Adding a new value (a new `site`, `style`, discipline, etc.) is safe — edit the enum in

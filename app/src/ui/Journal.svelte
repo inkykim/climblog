@@ -3,18 +3,29 @@
   import About from "./About.svelte";
   import Fig1 from "./Fig1.svelte";
   import SessionIndex from "./SessionIndex.svelte";
+  import BlogIndex from "./BlogIndex.svelte";
+  import Post from "./Post.svelte";
 
-  let { data, demo = false } = $props();
+  let { data, route } = $props();
   let aboutOpen = $state(false);
+  const demo = $derived(route.demo ?? false);
 </script>
 
 <div class="journal">
-  <Masthead {data} {demo} bind:aboutOpen />
+  <Masthead {data} {demo} view={route.view} bind:aboutOpen />
   {#if aboutOpen}
     <About />
   {/if}
-  <Fig1 {data} />
-  <SessionIndex {data} />
+
+  {#if route.view === "blog"}
+    <BlogIndex {data} />
+  {:else if route.view === "post"}
+    <Post {data} slug={route.slug} />
+  {:else}
+    <Fig1 {data} />
+    <SessionIndex {data} />
+  {/if}
+
   <footer>CLIMBLOG <span class="by">by inky</span>{demo ? " — DEMO DATA" : ""}</footer>
 </div>
 

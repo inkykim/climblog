@@ -28,6 +28,7 @@ TARGETS = {
     "entries/symptom-observations": "schema/symptom-observation.schema.json",
     "injuries": "schema/injury.schema.json",
     "gyms": "schema/gym.schema.json",
+    "posts": "schema/post.schema.json",
 }
 
 
@@ -105,6 +106,12 @@ def main():
                 ref = meta.get("gym_id")
                 if ref and ref not in gym_ids:
                     annotate(path, f"gym_id '{ref}' does not match any gym in gyms/")
+                    failed = True
+
+            if subdir == "posts":
+                ref = meta.get("injury_id")
+                if ref and ref not in injury_ids:
+                    annotate(path, f"injury_id '{ref}' does not match any injury in injuries/")
                     failed = True
 
     if failed:

@@ -23,6 +23,16 @@ Use `./log --no-git` to write the file without committing.
 
 Rest days are implicit — log sessions; a gap in the barcode is a rest day.
 
+## Write a post
+
+```bash
+./post "why my dip took two months"
+```
+
+Scaffolds `posts/`, opens your editor, tidies typography on close, validates,
+commits, pushes. The blog renders at `#blog`; `draft: true` keeps a post off
+the site while you work on it.
+
 ## Log an entry (by hand)
 
 1. Open [`codebook.md`](codebook.md) and copy the template for what you're logging:

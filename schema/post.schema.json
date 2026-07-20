@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "post.schema.json",
+  "title": "Post",
+  "description": "A blog post: long-form writing on injuries, progress, or anything. Body below the frontmatter is markdown (subset — see codebook).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "date"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Matches the filename stem: YYYY-MM-DD--slug.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}--[a-z0-9-]{1,60}$"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "injury_id": {
+      "type": "string",
+      "description": "Optional link to an injury in injuries/ — the post appears as that injury's deep-dive."
+    },
+    "draft": {
+      "type": "boolean",
+      "description": "true = excluded from the rendered site entirely (file remains public in the repo)."
+    }
+  }
+}

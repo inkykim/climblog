@@ -315,6 +315,7 @@ const data = {
   symptomObservations: observations,
   injuries,
   gyms,
+  posts: [],
 };
 
 const out = join(APP, "public", "data-demo.json");
