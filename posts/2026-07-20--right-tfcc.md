@@ -27,7 +27,7 @@ i thought hopping on some easy climbs a week after the injury would be okay. nop
 
 for around two weeks early in my injury, i experimented with wearing a wrist brace or taping my wrist for the majority of my waking hours, forcibly limiting my range of motion on the pain-causing movements. early enough in the injury i believe this to be okay, especially if the pain you experience during everyday movements is genuinely affecting you — and the research backs early immobilization harder than i expected: in one series of traumatic TFCC tears, conservative treatment succeeded in 76% of patients immobilized properly, versus 29% with just a short splint [6].
 
-however, i recommend against bracing as a long-term solution. the forcibly limited range of motion doesn't provide enough stimulus to the wrist complex to encourage adaptation — tissue remodels in response to controlled load, not rest [7] — and it hinders your mental assessment of the injury through pain feedback. also, taping my wrist with enough tension to be useful often ended up affecting blood flow to my fingers. i've heard wrist widgets or other, less inhibiting support is more helpful for recovery.
+however, i recommend against bracing as a long-term solution. the forcibly limited range of motion doesn't provide enough stimulus to the wrist complex to encourage adaptation — tissue remodels in response to controlled load, not rest [7] — and it hinders your mental assessment of the injury through pain feedback. also, taping my wrist with enough tension to be useful often ended up affecting blood flow to my fingers. i've heard wrist widgets or other less inhibiting support is more helpful for recovery, but i haven't tried them myself and ymmv.
 
 ### rehab exercise
 
@@ -37,9 +37,9 @@ i feel like these were genuinely the only helpful thing for my recovery. there's
 
 ### leg days
 
-here's where i found my TFCC injury to be a blessing in disguise. because i was so far away from any sort of pulling, i invested a lot of time into my legs — mobility and strength both. leg workouts kept me eating well and motivated to hit the gym, and mobility work translated to genuine on-the-wall gains. i even went to the climbing gym to make up no-hands problems on the slab wall.
+here's where i found my TFCC injury to be a blessing in disguise. because i was so far away from any sort of pulling, i invested a lot of time into my legs. leg workouts kept me eating well and motivated to hit the gym, and mobility work translated to genuine on-the-wall gains. i even went to the climbing gym to make up no-hands problems on the slab wall.
 
-during this time i progressed from 1 pistol squat each side to 5x3, learned to touch my toes, and developed a leg mobility routine i still use on rest days. when an injury makes being on the wall impossible, you have to find other ways to stay moving — and this isn't just vibes: staying engaged through goal-setting and structured activity during injury measurably improves mood and rehab adherence [9]. i genuinely believe that if i didn't take the time to work on my legs and make stuff up, i might never have returned to climbing, given the time i took off the wall and the motivation i would have lost.
+during this time i progressed from 1 pistol squat each side to 5x3, learned to touch my toes, and developed a leg mobility routine i still use on rest days. when an injury makes being on the wall impossible, you have to find other ways to stay moving. in fact, research says that goal-setting and structured activity to improve mood also aids in rehab adherence [9]. i genuinely believe that if i didn't take the time to work on my legs and make stuff up, i might never have returned to climbing. the TFCC injury is so brutal for climbers and there's really not much you can do to train with a bad wrist, but if there's one thing to do during these dark times it's to not lose motivation.
 
 ## what the research says
 
@@ -47,7 +47,7 @@ during this time i progressed from 1 pistol squat each side to 5x3, learned to t
 - positive ulnar variance structurally predisposes the TFCC to overload [1][2]
 - for acute traumatic tears, *proper* early immobilization has good conservative success rates (76% in one series) — my anti-brace instinct applies to the long haul, not week one [6]
 - after that window, progressive load is the treatment: tissue adapts to controlled mechanical stimulus [7], and strengthening the forearm's dynamic stabilizers measurably improves the joint stability the TFCC provides [8]
-- honest caveat: in climbers specifically, the evidence on training volume and warm-up is mixed [4] — the general injury-prevention literature supports structured warm-ups [5], but nobody has proven it for boulderers. my "never warmed up" self-blame is plausible, not proven.
+- honest caveat: in climbers specifically, the evidence on training volume and warm-up is mixed [4] — the general injury-prevention literature supports structured warm-ups [5], but nobody has proven it for boulderers. from my experience, continuing to use rehab movements during my warm up have helped me develop consistency before trying hard, but ymmv.
 
 ## sources
 
